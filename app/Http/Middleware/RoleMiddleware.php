@@ -9,16 +9,27 @@ class RoleMiddleware
 {
     public function handle(Request $request, Closure $next, ...$roles)
     {
-        // Jika user belum login (session kosong)
         if (!session()->has('role')) {
-            return redirect('/login')->with('error', 'Silakan login terlebih dahulu');
+            if (auth()->check() && auth()->user()->peran) {
+                session()->put('role', auth()->user()->peran);
+            } else {
+                return redirect('/login')->with('error', 'Silakan login terlebih dahulu');
+            }
         }
 
-        $userRole = session('role'); // Ambil peran user dari session
+        $normalize = function ($role) {
+            $r = strtolower(trim((string) $role));
+            return match ($r) {
+                'administrator' => 'admin',
+                'petugas' => 'staff',
+                default => $r,
+            };
+        };
 
-        // Jika role user tidak ada dalam daftar role yang diizinkan
-        if (!in_array($userRole, $roles)) {
-            // Redirect sesuai role user
+        $userRole = $normalize(session('role'));
+        $allowedRoles = array_map($normalize, $roles);
+
+        if (!in_array($userRole, $allowedRoles)) {
             return match ($userRole) {
                 'admin' => redirect()->route('admin')->with('error', 'Tidak punya akses'),
                 'staff' => redirect()->route('staff')->with('error', 'Tidak punya akses'),

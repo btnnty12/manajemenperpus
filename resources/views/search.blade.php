@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Search Buku - Perpustakaan</title>
 
     <!-- TAILWIND -->
@@ -43,6 +44,7 @@
     right: -6px;
 }
     </style>
+    <script src="/js/string-matching-service.js"></script>
 </head>
 
 <body class="bg-gradient-to-b from-[#F8E79D] to-[#F4C86E] min-h-screen">
@@ -54,6 +56,9 @@
        class="w-20 bg-[#C34722] text-white flex flex-col items-center py-6 shadow-lg relative">
 
     <div id="menuWrapper" class="relative flex flex-col items-center space-y-8 flex-1">
+        <div id="highlight"
+             class="absolute left-0 w-16 h-12 bg-white/30 rounded-xl transition-all duration-300 shadow-md -z-10"
+             style="top: 80px;"></div>
 
 
         <!-- HOME -->
@@ -73,18 +78,6 @@
             class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
             <i class="fa-solid fa-file-lines"></i>
         </button>
-
-        <!-- BUKU -->
-        <button onclick="window.location.href='{{ url('/pinjaman') }}';"
-            class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
-            <i class="fa-solid fa-book"></i>
-        </button>
-
-        <!-- FAVORIT -->
-         <button onclick="window.location.href='/favorit';"
-    class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
-    <i class="fa-solid fa-heart"></i>
-</button>
 
         <!-- SETTINGS -->
         <button onclick="window.location.href='/pengaturan';" 
@@ -601,6 +594,7 @@ document.addEventListener("click", (e) => {
 
 <script>
 const kategoriTags = document.querySelectorAll('.kategori-tag');
+const StringMatching = window.StringMatchingService;
 
 kategoriTags.forEach(tag => {
     tag.addEventListener('click', () => {
@@ -639,26 +633,35 @@ kategoriTags.forEach(tag => {
             hasilPencarianSection.classList.add("hidden");
         });
 
-        // Filter berdasarkan teks kategori
         const kategori = tag.innerText.replace("×","").trim().toLowerCase();
-
-        const filtered = allBooks.filter(b =>
-            b.title.toLowerCase().includes(kategori)
-        );
-
-        hasilPencarianSection.classList.remove("hidden");
-        hasilPencarianList.innerHTML = filtered.length
-            ? filtered.map(b => `
-                <div>
-                    <img src="/${b.img}" class="w-full rounded-lg shadow-md">
-                    <p class="mt-2 text-sm font-semibold">${b.title}</p>
-                    <p class="text-xs text-gray-500">${b.jenis} • ${b.bahasa}</p>
-                    <p class="text-xs text-gray-500">Tahun: ${b.tahun}</p>
-                </div>`
-            ).join("")
-            : `<p class="text-red-600">Tidak ada buku ditemukan.</p>`;
+        const algo = StringMatching.selectBestAlgorithm(kategori);
+        Promise.all(allBooks.map(b => StringMatching.searchWithAlgorithm(b.title.toLowerCase(), kategori, algo).then(pos => (pos.length > 0 ? b : null)))).then(results => {
+            const filtered = results.filter(Boolean);
+            hasilPencarianSection.classList.remove("hidden");
+            hasilPencarianList.innerHTML = filtered.length
+                ? filtered.map(b => `
+                    <div>
+                        <img src="/${b.img}" class="w-full rounded-lg shadow-md">
+                        <p class="mt-2 text-sm font-semibold">${b.title}</p>
+                        <p class="text-xs text-gray-500">${b.jenis} • ${b.bahasa}</p>
+                        <p class="text-xs text-gray-500">Tahun: ${b.tahun}</p>
+                    </div>`
+                ).join("")
+                : `<p class="text-red-600">Tidak ada buku ditemukan.</p>`;
+        });
     });
 });
+</script>
+<script>
+// Sidebar highlight movement
+const items = document.querySelectorAll(".menu-item");
+const highlight = document.getElementById("highlight");
+items.forEach((btn, index) => {
+    btn.addEventListener("click", () => {
+        highlight.style.top = (index * 80) + "px";
+    });
+});
+highlight.style.top = "80px";
 </script>
 
 </body>

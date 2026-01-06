@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Staff' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/js/string-matching-service.js"></script>
     
     <style>
         .menu-item {
@@ -77,8 +79,17 @@
 
     <!-- MAIN -->
     <div class="flex-1 py-6 px-8">
-        <!-- TOPBAR -->
         <div class="flex justify-end items-center w-full py-4 px-6 space-x-6">
+            <div class="border-l border-white h-6"></div>
+            <button id="messageBtn" onclick="toggleMessagePopup()" class="relative">
+                <x-icon name="email" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
+                <span id="messageBadge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+            </button>
+            <button id="notifBtn" onclick="toggleNotifPopup()" class="relative">
+                <x-icon name="notification" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
+                <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+            </button>
+            <div class="border-l border-white h-6"></div>
             <div class="flex items-center space-x-2">
                 <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold">
                     {{ strtoupper(substr(session('nama', 'ST'), 0, 2)) }}
@@ -95,9 +106,262 @@
         <main class="pb-10">
             {{ $slot }}
         </main>
+
+        <div id="notifPopup" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-6 w-96 max-h-[80vh] overflow-y-auto relative">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-[#A63A2D]">Notifikasi</h3>
+                    <div class="flex gap-2">
+                        <button onclick="markAllAsRead()" class="text-xs text-blue-600 hover:underline">Tandai semua dibaca</button>
+                        <button onclick="toggleNotifPopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+                    </div>
+                </div>
+                <ul id="notifList" class="space-y-3">
+                    <li class="p-3 text-center text-gray-500">Memuat notifikasi...</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="messagePopup" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-6 w-[32rem] max-h-[80vh] overflow-y-auto relative">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-[#A63A2D]">Pesan</h3>
+                    <div class="flex gap-2">
+                        <button onclick="toggleMessagePopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+                    </div>
+                </div>
+                <div class="mb-4 bg-gray-50 rounded-xl p-3">
+                    <p class="text-sm font-semibold text-[#A63A2D] mb-2">Kirim Pesan ke Pengguna</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <select id="recipientSelect" class="border rounded p-2 text-sm md:col-span-1"></select>
+                        <input id="composeIsi" type="text" class="border rounded p-2 text-sm md:col-span-2" placeholder="Tulis pesan singkat..." />
+                    </div>
+                    <div class="flex justify-end mt-2">
+                        <button class="px-3 py-1 bg-[#A63A2D] text-white rounded text-xs" onclick="sendMessage()">Kirim</button>
+                    </div>
+                </div>
+                <ul id="messageList" class="space-y-3">
+                    <li class="p-3 text-center text-gray-500">Memuat pesan...</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
+<script>
+    function toggleNotifPopup() {
+        const popup = document.getElementById('notifPopup');
+        popup.classList.toggle('hidden');
+        popup.classList.toggle('flex');
+        if (!popup.classList.contains('hidden')) {
+            loadNotifikasi();
+        }
+    }
+    function loadNotifikasi() {
+        fetch('/api/notifikasi', {
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const notifList = document.getElementById('notifList');
+            const badge = document.getElementById('notifBadge');
+            if (data.unread_count > 0) {
+                badge.textContent = data.unread_count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+            if (data.notifikasi && data.notifikasi.length > 0) {
+                notifList.innerHTML = data.notifikasi.map(notif => {
+                    const tipeColors = {
+                        'info': 'bg-blue-50 border-blue-500',
+                        'warning': 'bg-yellow-50 border-yellow-500',
+                        'success': 'bg-green-50 border-green-500',
+                        'error': 'bg-red-50 border-red-500'
+                    };
+                    const color = tipeColors[notif.tipe] || tipeColors['info'];
+                    const waktu = formatTime(notif.created_at);
+                    const unreadClass = !notif.dibaca ? 'font-semibold' : '';
+                    const link = notif.link ? `onclick="window.location.href='${notif.link}'"` : '';
+                    return `
+                        <li class="p-3 ${color} rounded-xl border-l-4 ${unreadClass} cursor-pointer hover:shadow-md" ${link} onclick="markAsRead(${notif.id})">
+                            <p class="text-sm font-semibold text-gray-800">${notif.judul}</p>
+                            <p class="text-xs text-gray-600 mt-1">${notif.pesan}</p>
+                            <p class="text-xs text-gray-400 mt-1">${waktu}</p>
+                        </li>
+                    `;
+                }).join('');
+            } else {
+                notifList.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada notifikasi</li>';
+            }
+        })
+        .catch(() => {});
+    }
+    function markAsRead(id) {
+        fetch(`/api/notifikasi/${id}/read`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        }).then(() => loadNotifikasi());
+    }
+    function markAllAsRead() {
+        fetch('/api/notifikasi/read-all', {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        }).then(() => loadNotifikasi());
+    }
+    function formatTime(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        if (diffMins < 1) return 'Baru saja';
+        if (diffMins < 60) return `${diffMins} menit lalu`;
+        if (diffHours < 24) return `${diffHours} jam lalu`;
+        if (diffDays < 7) return `${diffDays} hari lalu`;
+        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        loadNotifikasi();
+        window.notifInterval = setInterval(loadNotifikasi, 30000);
+    });
+    document.getElementById('notifPopup').addEventListener('click', function(e) {
+        if (e.target === this) {
+            toggleNotifPopup();
+        }
+    });
+</script>
+<script>
+    function toggleMessagePopup() {
+        const popup = document.getElementById('messagePopup');
+        popup.classList.toggle('hidden');
+        popup.classList.toggle('flex');
+        if (!popup.classList.contains('hidden')) {
+            loadRecipients();
+            loadMessages();
+        }
+    }
+    function loadMessages() {
+        fetch('/api/pesan?only_inbox=1', {
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            const list = document.getElementById('messageList');
+            const badge = document.getElementById('messageBadge');
+            if (badge) {
+                const count = data.unread_count || 0;
+                badge.textContent = count;
+                badge.classList.toggle('hidden', count === 0);
+            }
+            if (Array.isArray(data.data) && data.data.length > 0) {
+                list.innerHTML = data.data.map(m => {
+                    const confirmed = m.status === 'confirmed';
+                    const status = confirmed ? '<span class="text-green-700 text-xs ml-2">Dikonfirmasi</span>' : '';
+                    return `
+                        <li class="p-3 bg-gray-100 rounded-xl shadow hover:shadow-md">
+                            <p class="text-sm font-semibold">Pesan ${status}</p>
+                            <p class="text-sm text-gray-700 mt-1">${m.isi}</p>
+                            <div class="flex justify-end mt-2 text-xs gap-4">
+                                ${!confirmed ? `<button class="text-green-700" onclick="confirmMessage(${m.id})">Konfirmasi</button>` : ''}
+                                <button class="text-blue-700" onclick="replyMessage(${m.id})">Balas</button>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+            } else {
+                list.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada pesan</li>';
+            }
+        })
+        .catch(() => {
+            const list = document.getElementById('messageList');
+            list.innerHTML = '<li class="p-3 text-center text-red-600">Gagal memuat pesan</li>';
+        });
+    }
+    function confirmMessage(id) {
+        fetch(`/api/pesan/${id}/confirm`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json'
+            }
+        }).then(() => loadMessages());
+    }
+    function replyMessage(id) {
+        const isi = prompt('Tulis balasan:');
+        if (!isi) return;
+        fetch(`/api/pesan/${id}/reply`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ isi })
+        }).then(() => loadMessages());
+    }
+    function loadRecipients() {
+        fetch('/api/pengguna', {
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(users => {
+            const sel = document.getElementById('recipientSelect');
+            if (!sel) return;
+            const onlyPengguna = Array.isArray(users) ? users.filter(u => u.peran === 'pengguna') : [];
+            sel.innerHTML = onlyPengguna.map(u => `<option value="${u.id}">${u.nama} (${u.email})</option>`).join('');
+        });
+    }
+    function sendMessage() {
+        const sel = document.getElementById('recipientSelect');
+        const isi = document.getElementById('composeIsi');
+        if (!sel || !isi) return;
+        const penerima_id = sel.value;
+        const text = isi.value.trim();
+        if (!penerima_id || !text) return alert('Pilih penerima dan isi pesan');
+        fetch('/api/pesan', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ penerima_id, isi: text })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error();
+            isi.value = '';
+            loadMessages();
+        })
+        .catch(() => alert('Gagal mengirim pesan'));
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        loadMessages();
+    });
+    document.getElementById('messagePopup').addEventListener('click', function(e) {
+        if (e.target === this) {
+            toggleMessagePopup();
+        }
+    });
+</script>
 <script>
     // Set active state pada menu berdasarkan route saat ini
     const currentPath = window.location.pathname;
@@ -137,4 +401,3 @@
 </script>
 </body>
 </html>
-

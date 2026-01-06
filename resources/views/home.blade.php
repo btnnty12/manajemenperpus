@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Beranda - Perpustakaan</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -35,19 +36,9 @@
     <i class="fa-solid fa-magnifying-glass"></i>
 </button>
 
-        <button onclick="window.location.href='/pengembalian-buku';"
-    class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-file-lines"></i></button>
-</button>
-
-        <button 
-    onclick="window.location.href='/pinjaman';"
+<button onclick="window.location.href='/pengembalian-buku';"
     class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
-    <i class="fa-solid fa-book"></i>
-</button>
-
-        <button onclick="window.location.href='/favorit';"
-    class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
-    <i class="fa-solid fa-heart"></i>
+    <i class="fa-solid fa-file-lines"></i>
 </button>
 
       <button onclick="window.location.href='/pengaturan';" 
@@ -92,22 +83,28 @@
 
 
     <!-- NOTIFICATION BUTTON -->
-        <button id="notifBtn" class="text-2xl hover:opacity-80 relative">
+        <button id="notifBtn" onclick="toggleNotifPopup()" class="text-2xl hover:opacity-80 relative">
             🔔
+            <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
         </button>
 
         <!-- MESSAGE BUTTON -->
         <button id="msgBtn" class="text-2xl hover:opacity-80 relative">
             ✉️
+            <span id="msgBadge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
         </button>
 
         <div id="profileBtn"
-     class="bg-blue-500 w-10 h-10 rounded-full text-white flex items-center justify-center font-bold cursor-pointer">
-    {{ strtoupper(substr($user['nama'] ?? 'PU', 0, 2)) }}
+     class="bg-blue-500 w-10 h-10 rounded-full text-white flex items-center justify-center font-bold cursor-pointer overflow-hidden">
+    @if(Auth::check() && Auth::user()->profile_photo)
+        <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" class="w-full h-full object-cover">
+    @else
+        {{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}
+    @endif
 </div>
 
 <span id="profileBtn2" class="font-semibold text-lg cursor-pointer">
-    {{ $user['nama'] ?? 'Pengguna' }} ▾
+    {{ Auth::user()->nama ?? 'Pengguna' }}
 </span>
     </div>
 
@@ -130,63 +127,30 @@
 
     <!-- POPUP NOTIFIKASI -->
     <div id="notifPopup"
-         class="hidden absolute top-20 right-40 w-72 bg-white shadow-xl rounded-2xl p-4 z-50">
-        <h3 class="font-bold mb-3 text-lg">Notifikasi</h3>
-        <ul class="space-y-3 text-sm">
-            <li class="p-3 bg-gray-100 rounded-xl">📘 Buku "Clean Code" sudah kembali</li>
-            <li class="p-3 bg-gray-100 rounded-xl">⏳ Peminjaman kamu tinggal 3 hari</li>
-            <li class="p-3 bg-gray-100 rounded-xl">✨ Ada rekomendasi buku baru untukmu</li>
-        </ul>
-    </div>
-
-    <!-- POPUP PESAN -->
-    <!-- POPUP PESAN KHUSUS ADMIN -->
-<div id="msgPopup"
-     class="hidden absolute top-12 right-20 w-96 bg-white shadow-xl rounded-2xl p-5 z-50">
-
-    <h3 class="font-bold mb-4 text-lg">Pesan dari Admin</h3>
-
-    <div id="adminMessages" class="space-y-4 max-h-80 overflow-y-auto pr-1">
-
-        <!-- PESAN ADMIN -->
-        <div class="message-item bg-gray-100 p-4 rounded-xl">
-            <div class="flex items-start space-x-3">
-
-                <!-- ICON ORANG -->
-                <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-user"></i>
-                </div>
-
-                <div class="flex-1">
-                    <div class="font-semibold text-sm">Admin Perpustakaan</div>
-
-                    <div class="text-sm text-gray-600 mt-1">
-                        Halo Fayza, peminjaman buku <b>Clean Code</b> kamu sudah disetujui.
-                        Silakan ambil di loket perpustakaan.
-                    </div>
-
-                    <!-- ACTIONS -->
-                    <div class="flex gap-3 mt-3">
-                        <button class="reply-btn text-xs text-blue-600 hover:underline">Balas</button>
-                        <button class="delete-btn text-xs text-red-600 hover:underline">Hapus</button>
-                    </div>
-
-                    <!-- INPUT BALAS -->
-                    <div class="reply-box hidden mt-3">
-                        <input type="text"
-                               class="w-full border rounded-lg px-3 py-1 text-sm"
-                               placeholder="Tulis balasan...">
-                        <button class="send-reply mt-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs">
-                            Kirim
-                        </button>
-                    </div>
-
+         class="hidden fixed inset-0 bg-black/50 items-center justify-center z-50">
+        <div class="bg-white shadow-xl rounded-2xl p-6 w-96 max-h-[80vh] overflow-y-auto relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-xl text-[#A63A2D]">Notifikasi</h3>
+                <div class="flex gap-2">
+                    <button onclick="markAllAsRead()" class="text-xs text-blue-600 hover:underline">Tandai semua dibaca</button>
+                    <button onclick="toggleNotifPopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
                 </div>
             </div>
+            <ul id="notifList" class="space-y-3">
+                <li class="p-3 text-center text-gray-500">Memuat notifikasi...</li>
+            </ul>
         </div>
-
     </div>
-</div>
+
+    <div id="msgPopup" class="hidden absolute top-12 right-20 w-96 bg-white shadow-xl rounded-2xl p-5 z-50">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg">Pesan</h3>
+            <button onclick="msgPopup.classList.add('hidden')" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+        </div>
+        <ul id="messageList" class="space-y-4 max-h-80 overflow-y-auto pr-1">
+            <li class="p-3 text-center text-gray-500">Memuat pesan...</li>
+        </ul>
+    </div>
 
 
     <!-- BANNER -->
@@ -197,7 +161,7 @@
 
            <a href="{{ route('search') }}" 
    class="px-8 py-3 bg-white text-black font-bold rounded-full shadow hover:bg-gray-100 transition">
-    Selajahi Sekarang
+    Jelajahi Sekarang
 </a>
         </div>
 
@@ -436,52 +400,210 @@ scrollBox.addEventListener("scroll", () => {
     const notifPopup = document.getElementById("notifPopup");
     const msgPopup = document.getElementById("msgPopup");
 
+let notifInterval;
+let msgInterval;
+
+function toggleNotifPopup() {
+    const popup = document.getElementById("notifPopup");
+    popup.classList.toggle("hidden");
+    popup.classList.toggle("flex");
+    document.getElementById("msgPopup").classList.add("hidden");
+    
+    if (!popup.classList.contains("hidden")) {
+        loadNotifikasi();
+    }
+}
+
+function loadNotifikasi() {
+    fetch('/api/notifikasi', {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const notifList = document.getElementById('notifList');
+        const badge = document.getElementById('notifBadge');
+        
+        // Update badge
+        if (data.unread_count > 0) {
+            badge.textContent = data.unread_count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+        
+        // Render notifikasi
+        if (data.notifikasi && data.notifikasi.length > 0) {
+            notifList.innerHTML = data.notifikasi.map(notif => {
+                const tipeColors = {
+                    'info': 'bg-blue-50 border-blue-500',
+                    'warning': 'bg-yellow-50 border-yellow-500',
+                    'success': 'bg-green-50 border-green-500',
+                    'error': 'bg-red-50 border-red-500'
+                };
+                const color = tipeColors[notif.tipe] || tipeColors['info'];
+                const waktu = formatTime(notif.created_at);
+                const unreadClass = !notif.dibaca ? 'font-semibold' : '';
+                const link = notif.link ? `onclick="window.location.href='${notif.link}'"` : '';
+                
+                return `
+                    <li class="p-3 ${color} rounded-xl border-l-4 ${unreadClass} cursor-pointer hover:shadow-md" ${link} onclick="markAsRead(${notif.id})">
+                        <p class="text-sm font-semibold text-gray-800">${notif.judul}</p>
+                        <p class="text-xs text-gray-600 mt-1">${notif.pesan}</p>
+                        <p class="text-xs text-gray-400 mt-1">${waktu}</p>
+                    </li>
+                `;
+            }).join('');
+        } else {
+            notifList.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada notifikasi</li>';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading notifications:', error);
+    });
+}
+
+function markAsRead(id) {
+    fetch(`/api/notifikasi/${id}/read`, {
+        method: 'PUT',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(() => {
+        loadNotifikasi();
+    });
+}
+
+function markAllAsRead() {
+    fetch('/api/notifikasi/read-all', {
+        method: 'PUT',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(() => {
+        loadNotifikasi();
+    });
+}
+
+function formatTime(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Baru saja';
+    if (diffMins < 60) return `${diffMins} menit lalu`;
+    if (diffHours < 24) return `${diffHours} jam lalu`;
+    if (diffDays < 7) return `${diffDays} hari lalu`;
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
     notifBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        notifPopup.classList.toggle("hidden");
-        msgPopup.classList.add("hidden");
+        toggleNotifPopup();
+    });
+    
+    // Load notifikasi saat halaman dimuat dan update setiap 30 detik
+    document.addEventListener('DOMContentLoaded', () => {
+        loadNotifikasi();
+        notifInterval = setInterval(loadNotifikasi, 30000); // Update setiap 30 detik
     });
 
     msgBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         msgPopup.classList.toggle("hidden");
         notifPopup.classList.add("hidden");
+        if (!msgPopup.classList.contains("hidden")) {
+            loadMessages();
+        }
     });
 
     // Klik luar menutup semua popup
-    document.addEventListener("click", () => {
-        notifPopup.classList.add("hidden");
-        msgPopup.classList.add("hidden");
+    document.getElementById("notifPopup").addEventListener("click", function(e) {
+        if (e.target === this) {
+            toggleNotifPopup();
+        }
     });
 </script>
 <script>
-    // HAPUS PESAN
-    document.querySelectorAll(".delete-btn").forEach(btn => {
-        btn.addEventListener("click", function () {
-            this.closest(".message-item").remove();
-        });
+function loadMessages() {
+    fetch('/api/pesan?only_inbox=1', {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        const list = document.getElementById('messageList');
+        const badge = document.getElementById('msgBadge');
+        if (badge) {
+            const count = data.unread_count || 0;
+            badge.textContent = count;
+            badge.classList.toggle('hidden', count === 0);
+        }
+        if (Array.isArray(data.data) && data.data.length > 0) {
+            list.innerHTML = data.data.map(m => {
+                const confirmed = m.status === 'confirmed';
+                const status = confirmed ? '<span class="text-green-700 text-xs ml-2">Dikonfirmasi</span>' : '';
+                return `
+                    <li class="p-3 bg-gray-100 rounded-xl shadow hover:shadow-md">
+                        <p class="text-sm font-semibold">Pesan ${status}</p>
+                        <p class="text-sm text-gray-700 mt-1">${m.isi}</p>
+                        <div class="flex justify-end mt-2 text-xs gap-4">
+                            ${!confirmed ? `<button class="text-green-700" onclick="confirmMessage(${m.id})">Konfirmasi</button>` : ''}
+                            <button class="text-blue-700" onclick="replyMessage(${m.id})">Balas</button>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        } else {
+            list.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada pesan</li>';
+        }
+    })
+    .catch(() => {
+        const list = document.getElementById('messageList');
+        list.innerHTML = '<li class="p-3 text-center text-red-600">Gagal memuat pesan</li>';
     });
-
-    // TAMPILKAN INPUT BALAS
-    document.querySelectorAll(".reply-btn").forEach(btn => {
-        btn.addEventListener("click", function () {
-            const box = this.closest(".message-item").querySelector(".reply-box");
-            box.classList.toggle("hidden");
-        });
-    });
-
-    // KIRIM BALASAN
-    document.querySelectorAll(".send-reply").forEach(btn => {
-        btn.addEventListener("click", function () {
-            const input = this.previousElementSibling;
-            const value = input.value.trim();
-
-            if (value !== "") {
-                alert("Balasan terkirim:\n" + value);
-                input.value = "";
-            }
-        });
-    });
+}
+function confirmMessage(id) {
+    fetch(`/api/pesan/${id}/confirm`, {
+        method: 'PUT',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json'
+        }
+    }).then(() => loadMessages());
+}
+function replyMessage(id) {
+    const isi = prompt('Tulis balasan:');
+    if (!isi) return;
+    fetch(`/api/pesan/${id}/reply`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isi })
+    }).then(() => loadMessages());
+}
+document.addEventListener('DOMContentLoaded', () => {
+    loadMessages();
+    msgInterval = setInterval(loadMessages, 30000);
+});
 </script>
 
 <script>

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Data Pengembalian Buku</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 </head>
@@ -15,12 +15,10 @@
     <aside id="sidebar" class="w-20 bg-[#C34722] text-white flex flex-col items-center py-6 shadow-lg relative">
         <div id="menuWrapper" class="relative flex flex-col items-center space-y-8 flex-1">
             <div id="highlight" class="absolute left-0 w-16 h-12 bg-white/30 rounded-xl transition-all duration-300 shadow-md -z-10" style="top: 0;"></div>
-            <button onclick="window.location.href='/home';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-house"></i></button>
-            <button onclick="window.location.href='/search';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-magnifying-glass"></i></button>
-            <button onclick="window.location.href='/pengembalian-buku';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-file-lines"></i></button>
-            <button onclick="window.location.href='/pinjaman';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-book"></i></button>
-            <button onclick="window.location.href='/favorit';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-heart"></i></button>
-            <button onclick="window.location.href='/pengaturan';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-gear"></i></button>
+            <button onclick="window.location.href='{{ route('home') }}';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-house"></i></button>
+            <button onclick="window.location.href='{{ route('search') }}';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <button onclick="window.location.href='{{ route('pengembalian.index') }}';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-file-lines"></i></button>
+            <button onclick="window.location.href='{{ route('pengaturan') }}';" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100"><i class="fa-solid fa-gear"></i></button>
             <button onclick="window.location.href='{{ url('/logout') }}'" class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100 mb-4 mt-auto"><i class="fa-solid fa-right-from-bracket"></i></button>
         </div>
     </aside>
@@ -30,12 +28,12 @@
 
         <!-- HEADER -->
         <div class="absolute right-10 top-6 flex items-center gap-4">
-            <a href="/create" class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm flex items-center gap-2 shadow">Pinjam Buku <i class="fas fa-plus text-xs"></i></a>
+            <a href="{{ route('pengembalian.create') }}" class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm flex items-center gap-2 shadow hover:bg-green-700 transition">Pinjam Buku <i class="fas fa-plus text-xs"></i></a>
         </div>
 
         <!-- TITLE -->
         <h1 class="text-3xl font-bold mt-16">Data Pengembalian Buku</h1>
-        <p class="text-sm text-gray-700 mb-6">Hai Fayza, pastikan kamu mengembalikan buku tepat waktu, ya.</p>
+        <p class="text-sm text-gray-700 mb-6">Hai {{ Auth::user()->nama ?? 'Pengguna' }}, pastikan kamu mengembalikan buku tepat waktu, ya.</p>
 
         <!-- STATISTIK CARDS -->
         <div class="grid grid-cols-4 gap-6 mt-6">
@@ -180,6 +178,17 @@ function applyFilter(){
         row.style.display = show?'':'none';
     });
 }
+</script>
+<script>
+// Sidebar highlight movement
+const items = document.querySelectorAll(".menu-item");
+const highlight = document.getElementById("highlight");
+items.forEach((btn, index) => {
+    btn.addEventListener("click", () => {
+        highlight.style.top = (index * 80) + "px";
+    });
+});
+highlight.style.top = "160px";
 </script>
 
 </body>

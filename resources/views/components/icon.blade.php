@@ -17,6 +17,7 @@
         'delete' => '<path stroke-linecap="round" stroke-linejoin="round" d="M6 7.5h12M9.75 7.5V5.25A1.5 1.5 0 0111.25 3.75h1.5a1.5 1.5 0 011.5 1.5V7.5m-7.5 0h9l-.72 11.09a1.5 1.5 0 01-1.5 1.41H8.22a1.5 1.5 0 01-1.5-1.41L6 7.5z"/>',
         'reminder' => '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>',
         'book-open' => '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75c-1.148-.717-2.618-1.125-4.125-1.125-1.507 0-2.977.408-4.125 1.125v11.25c1.148-.717 2.618-1.125 4.125-1.125 1.507 0 2.977.408 4.125 1.125V6.75z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75c1.148-.717 2.618-1.125 4.125-1.125 1.507 0 2.977.408 4.125 1.125v11.25c-1.148-.717-2.618-1.125-4.125-1.125-1.507 0-2.977.408-4.125 1.125V6.75z"/>',
+        'eye' => '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12c1.125-2.25 4.5-7.5 9.75-7.5s8.625 5.25 9.75 7.5c-1.125 2.25-4.5 7.5-9.75 7.5S3.375 14.25 2.25 12z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z"/>',
     ];
 
     $svg = $icons[$name] ?? $icons['home'];
@@ -25,4 +26,3 @@
 <svg {{ $attributes->merge(['class' => $class]) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="{{ $stroke }}" stroke-width="1.8">
     {!! $svg !!}
 </svg>
-

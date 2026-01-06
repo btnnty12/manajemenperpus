@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <script src="https://cdn.tailwindcss.com"></script>
   <title>Notifikasi Perpustakaan</title>
 </head>
@@ -11,111 +12,97 @@
   <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
 
     <!-- NOTIFIKASI BIASA (BIRU) -->
-    <div class="space-y-4">
-
-      <!-- Item -->
-      <div class="bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start">
-        <span class="text-3xl">📘</span>
-        <p class="text-sm font-medium">Peminjaman buku "Clean Code" berhasil. Kembalikan sebelum 10 Oktober 2025.</p>
-      </div>
-
-      <div class="bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start">
-        <span class="text-3xl">📘</span>
-        <p class="text-sm font-medium">Buku "Machine Learning" harus dikembalikan dalam 3 hari lagi.</p>
-      </div>
-
-      <div class="bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start">
-        <span class="text-3xl">📘</span>
-        <p class="text-sm font-medium">Buku "Sistem Basis Data" terlambat dikembalikan 2 hari.</p>
-      </div>
-
-      <div class="bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start">
-        <span class="text-3xl">📚</span>
-        <p class="text-sm font-medium">Buku baru "AI for Everyone" sudah tersedia di rak Teknologi.</p>
-      </div>
-
-      <div class="bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start">
-        <span class="text-3xl">💡</span>
-        <p class="text-sm font-medium">Rekomendasi untuk kamu: "Neural Networks Simplified".</p>
-      </div>
-
-      <div class="bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start">
-        <span class="text-3xl">⚠️</span>
-        <p class="text-sm font-medium">Aplikasi akan maintenance 1 November, 22.00–23.00 WIB.</p>
-      </div>
-
-      <div class="bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start">
-        <span class="text-3xl">📦</span>
-        <p class="text-sm font-medium">Buku "Docker for Beginners" siap diambil di loket perpustakaan.</p>
-      </div>
-
-      <div class="bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start">
-        <span class="text-3xl">📘</span>
-        <p class="text-sm font-medium">Buku "Etika Profesi IT" kini tersedia kembali di koleksi kampus.</p>
-      </div>
-
-      <div class="bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start">
-        <span class="text-3xl">👤</span>
-        <p class="text-sm font-medium">Profil kamu berhasil diperbarui.</p>
-      </div>
-
-    </div>
+    <div class="space-y-4" id="notif-list"></div>
 
 
     <!-- PESAN (ABU-ABU) -->
-    <div class="space-y-4">
-
-      <div class="bg-gray-200 p-4 rounded-xl shadow">
-        <p class="font-semibold text-sm">Perpus</p>
-        <div class="flex gap-3 mt-2">
-          <span class="text-3xl">👤</span>
-          <p class="text-sm">Halo Fayza, peminjaman buku Clean Code kamu sudah disetujui. Silakan ambil di loket perpustakaan.</p>
-        </div>
-        <div class="flex justify-end mt-2 text-xs gap-4">
-          <button class="text-red-500">Hapus</button>
-          <button class="text-blue-500">Balas</button>
-        </div>
-      </div>
-
-      <div class="bg-gray-200 p-4 rounded-xl shadow">
-        <p class="font-semibold text-sm">Perpus</p>
-        <div class="flex gap-3 mt-2">
-          <span class="text-3xl">👤</span>
-          <p class="text-sm">Hai Fayza, jangan lupa buku Machine Learning dikembalikan sebelum 10 Oktober 2025, ya.</p>
-        </div>
-        <div class="flex justify-end mt-2 text-xs gap-4">
-          <button class="text-red-500">Hapus</button>
-          <button class="text-blue-500">Balas</button>
-        </div>
-      </div>
-
-      <div class="bg-gray-200 p-4 rounded-xl shadow">
-        <p class="font-semibold text-sm">Perpus</p>
-        <div class="flex gap-3 mt-2">
-          <span class="text-3xl">👤</span>
-          <p class="text-sm">Peminjaman buku Sistem Basis Data kamu terlambat dikembalikan 2 hari. Total denda sementara: Rp4.000. Silakan lakukan pembayaran di loket.</p>
-        </div>
-        <div class="flex justify-end mt-2 text-xs gap-4">
-          <button class="text-red-500">Hapus</button>
-          <button class="text-blue-500">Balas</button>
-        </div>
-      </div>
-
-      <div class="bg-gray-200 p-4 rounded-xl shadow">
-        <p class="font-semibold text-sm">Perpus</p>
-        <div class="flex gap-3 mt-2">
-          <span class="text-3xl">👤</span>
-          <p class="text-sm">Pengingat denda kamu sebesar Rp10.000 untuk keterlambatan pengembalian buku Statistika Terapan. Mohon segera dilunasi.</p>
-        </div>
-        <div class="flex justify-end mt-2 text-xs gap-4">
-          <button class="text-red-500">Hapus</button>
-          <button class="text-blue-500">Balas</button>
-        </div>
-      </div>
-
-    </div>
+    <div class="space-y-4" id="message-list"></div>
 
   </div>
 
+  <script>
+    function csrf() {
+      const el = document.querySelector('meta[name="csrf-token"]');
+      return el ? el.getAttribute('content') : '';
+    }
+    async function fetchJSON(url, options = {}) {
+      const headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': csrf(),
+        ...(options.headers || {})
+      };
+      const res = await fetch(url, { ...options, headers });
+      if (!res.ok) throw new Error('Network error');
+      return res.json();
+    }
+
+    function renderNotifItem(n) {
+      const icon = n.tipe === 'warning' ? '⚠️' : n.tipe === 'success' ? '✅' : n.tipe === 'error' ? '⛔' : '📘';
+      const div = document.createElement('div');
+      div.className = 'bg-blue-100 rounded-xl p-4 shadow flex gap-3 items-start';
+      div.innerHTML = `<span class="text-3xl">${icon}</span><p class="text-sm font-medium">${n.judul ? n.judul + ' — ' : ''}${n.pesan}</p>`;
+      return div;
+    }
+
+    function renderMessageItem(m) {
+      const div = document.createElement('div');
+      div.className = 'bg-gray-200 p-4 rounded-xl shadow';
+      const statusText = m.status === 'confirmed' ? '<span class="text-green-600 text-xs ml-2">Dikonfirmasi</span>' : '';
+      div.innerHTML = `
+        <p class="font-semibold text-sm">Perpus ${statusText}</p>
+        <div class="flex gap-3 mt-2">
+          <span class="text-3xl">👤</span>
+          <p class="text-sm">${m.isi}</p>
+        </div>
+        <div class="flex justify-end mt-2 text-xs gap-4">
+          ${m.status === 'sent' ? `<button class="text-green-600" data-action="confirm" data-id="${m.id}">Konfirmasi</button>` : ''}
+          <button class="text-blue-500" data-action="reply" data-id="${m.id}">Balas</button>
+        </div>
+      `;
+      div.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const action = btn.getAttribute('data-action');
+          try {
+            if (action === 'confirm') {
+              await fetchJSON(`/api/pesan/${id}/confirm`, { method: 'PUT' });
+            }
+            if (action === 'reply') {
+              const isi = prompt('Tulis balasan:');
+              if (isi) {
+                await fetchJSON(`/api/pesan/${id}/reply`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ isi })
+                });
+              }
+            }
+            await loadAll();
+          } catch (e) {
+            alert('Gagal memproses aksi');
+          }
+        });
+      });
+      return div;
+    }
+
+    async function loadAll() {
+      try {
+        const notif = await fetchJSON('/api/notifikasi');
+        const notifList = document.getElementById('notif-list');
+        notifList.innerHTML = '';
+        notif.notifikasi.forEach(n => notifList.appendChild(renderNotifItem(n)));
+
+        const messages = await fetchJSON('/api/pesan?only_inbox=1');
+        const msgList = document.getElementById('message-list');
+        msgList.innerHTML = '';
+        messages.data.forEach(m => msgList.appendChild(renderMessageItem(m)));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    loadAll();
+  </script>
 </body>
 </html>

@@ -3,16 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Formulir Peminjaman</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 </head>
 
-<body class="bg-[#f8e5a5]">
-
-<div class="flex">
-
-    <body class="bg-gradient-to-b from-yellow-200 to-yellow-300 min-h-screen flex">
+<body class="bg-gradient-to-b from-yellow-200 to-yellow-300 min-h-screen flex">
 
 <!-- ======================== -->
 <!--     SIDEBAR NAVBAR       -->
@@ -29,62 +26,34 @@
         </div>
 
         <!-- Icons -->
-        <button onclick="window.location.href='/home'"
+        <button onclick="window.location.href='{{ route('home') }}'"
             class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
             <i class="fa-solid fa-house"></i>
         </button>
 
-        <button onclick="window.location.href='/search'"
+        <button onclick="window.location.href='{{ route('search') }}'"
             class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
             <i class="fa-solid fa-magnifying-glass"></i>
         </button>
 
-        <button onclick="window.location.href='/pengembalian-buku'"
+        <button onclick="window.location.href='{{ route('pengembalian.index') }}'"
             class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
             <i class="fa-solid fa-file-lines"></i>
         </button>
 
-        <button onclick="window.location.href='/pinjaman'"
-            class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
-            <i class="fa-solid fa-book"></i>
-        </button>
-
-        <button onclick="window.location.href='/favorit'"
-            class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
-            <i class="fa-solid fa-heart"></i>
-        </button>
-
-        <button onclick="window.location.href='/pengaturan'"
+        <button onclick="window.location.href='{{ route('pengaturan') }}'"
             class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100">
             <i class="fa-solid fa-gear"></i>
         </button>
     </div>
 
     <!-- LOGOUT -->
-    <button onclick="window.location.href='/logout'"
+    <button onclick="window.location.href='{{ route('logout') }}'"
             class="menu-item w-12 h-12 flex items-center justify-center text-2xl opacity-80 hover:opacity-100 mb-4 mt-auto">
         <i class="fa-solid fa-right-from-bracket"></i>
     </button>
 
 </aside>
-
-<!-- Highlight Script -->
-<script>
-    const items = document.querySelectorAll(".menu-item");
-    const highlight = document.getElementById("highlight");
-
-    items.forEach((btn, index) => {
-        btn.addEventListener("click", () => {
-            highlight.style.top = (index * 80) + "px";
-        });
-    });
-
-    highlight.style.top = "0px"; 
-</script>
-
-<!-- Font Awesome -->
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
         <!-- CONTENT -->
 <div class="flex-1 py-10 px-10">
@@ -92,7 +61,7 @@
 
         <h1 class="text-center text-2xl font-bold">Formulir Peminjaman Buku</h1>
         <p class="text-center text-sm text-gray-500 -mt-1 mb-8">
-            Hai Fayza! Silakan isi formulir berikut untuk mengajukan peminjaman buku.<br>
+            Hai {{ $user['nama'] ?? 'Pengguna' }}! Silakan isi formulir berikut untuk mengajukan peminjaman buku.<br>
             Pengajuanmu akan dikonfirmasi oleh admin sebelum buku bisa diambil, ya.
         </p>
 
@@ -101,8 +70,8 @@
             <!-- KIRI -->
             <div>
                 <label class="font-semibold">Nama Lengkap</label>
-                <input type="text" value="Fayza Azzahra"
-                       class="w-full border rounded px-2 py-1 mt-1">
+                <input type="text" value="{{ $user['nama'] ?? 'Pengguna' }}"
+                       class="w-full border rounded px-2 py-1 mt-1" readonly>
 
                 <label class="font-semibold mt-4 block">ID Peminjaman</label>
                 <input type="text"
@@ -168,14 +137,19 @@
     </div>
 </div>
 
-            </div>
-        </div>
+<!-- Highlight Script -->
+<script>
+    const items = document.querySelectorAll(".menu-item");
+    const highlight = document.getElementById("highlight");
 
-    </div>
-</div>
+    items.forEach((btn, index) => {
+        btn.addEventListener("click", () => {
+            highlight.style.top = (index * 80) + "px";
+        });
+    });
 
-<!-- FONT AWESOME -->
-<script src="https://kit.fontawesome.com/a2e0e9ad4b.js" crossorigin="anonymous"></script>
+    highlight.style.top = "160px"; // Set untuk posisi pengembalian-buku
+</script>
 
 </body>
 </html>

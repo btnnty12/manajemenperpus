@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Data Anggota</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -39,25 +40,25 @@
 </style>
 
 <!-- SIDEBAR -->
-<div class="w-20 bg-[#a63a2d] min-h-screen flex flex-col items-center py-6">
+<div class="w-20 bg-[#a63a2d] min-h-screen flex flex-col items-center py-6 relative">
 
-   <!-- Indikator aktif -->
+    <!-- INDIKATOR AKTIF -->
     <div id="indicator"></div>
 
     <!-- MENU ATAS -->
-    <div class="flex flex-col items-center space-y-20 pt-20">
-
-    <a href="{{ route('admin') }}" class="menu-item"><x-icon name="home" class="w-7 h-7 text-white" /></a>
-    <a href="{{ route('data.anggota') }}" class="menu-item"><x-icon name="anggota" class="w-7 h-7 text-white" /></a>
-    <a href="{{ route('kelola.buku') }}" class="menu-item"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
-    <a href="{{ route('laporan-peminjaman') }}" class="menu-item"><x-icon name="grafik" class="w-7 h-7 text-white" /></a>
-    <a href="{{ route('kelola-user') }}" class="menu-item"><x-icon name="user" class="w-7 h-7 text-white" /></a>
-    <a href="{{ route('pengaturan') }}" class="menu-item"><x-icon name="setting" class="w-7 h-7 text-white" /></a>
-
-</div>
+    <div class="flex flex-col items-center space-y-20 pt-20 w-full">
+        <a href="{{ route('admin') }}" class="menu-item" aria-label="Dashboard"><x-icon name="home" class="w-7 h-7 text-white" /></a>
+        <a href="{{ route('data.anggota') }}" class="menu-item" aria-label="Data Anggota"><x-icon name="anggota" class="w-7 h-7 text-white" /></a>
+        <a href="{{ route('kelola.buku') }}" class="menu-item" aria-label="Kelola Buku"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
+        <a href="{{ route('laporan-peminjaman') }}" class="menu-item" aria-label="Laporan Peminjaman"><x-icon name="grafik" class="w-7 h-7 text-white" /></a>
+        <a href="{{ route('kelola-user') }}" class="menu-item" aria-label="Kelola User"><x-icon name="user" class="w-7 h-7 text-white" /></a>
+    </div>
 
     <!-- LOGOUT PALING BAWAH -->
-    <a href="{{ url('/logout') }}" class="menu-item mt-auto mb-4"><x-icon name="logout" class="w-7 h-7 text-white" /></a>
+    <a href="{{ url('/logout') }}" class="menu-item mt-auto mb-4" aria-label="Logout">
+        <x-icon name="logout" class="w-7 h-7 text-white" />
+    </a>
+</div>
 </div>
 
         <!-- MAIN CONTENT -->
@@ -70,10 +71,16 @@
     <div class="border-l border-white h-6"></div>
 
     <!-- Icon pesan -->
-    <x-icon name="email" class="w-6 h-6 text-black" />
+    <button id="messageBtn" onclick="toggleMessagePopup()" class="relative">
+        <x-icon name="email" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
+        <span id="messageBadge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+    </button>
 
     <!-- Icon notif -->
-    <x-icon name="notification" class="w-6 h-6 text-black" />
+    <button id="notifBtn" onclick="toggleNotifPopup()" class="relative">
+        <x-icon name="notification" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
+        <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+    </button>
 
     <!-- Divider kanan -->
     <div class="border-l border-white h-6"></div>
@@ -83,8 +90,7 @@
         <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold">
             FA
         </div>
-        <span class="text-black font-medium">Fayza Azzahra</span>
-        <x-icon name="arrow-down" class="w-4 h-4 ml-1 text-black" />
+            <span class="text-black font-medium">Fayza Azzahra</span>
     </div>
 
 </div>
@@ -154,8 +160,8 @@
                         </tr>
                     </thead>
 
-                    <tbody>
-                        <tr class="border-b">
+                    <tbody id="anggotaTableBody">
+                        <tr class="border-b anggota-row">
                             <td class="px-4 py-3">AGT001</td>
                             <td class="px-4 py-3">19/10/2025</td>
                             <td class="px-4 py-3">Siti Nurfadila</td>
@@ -169,7 +175,7 @@
                             </td>
                         </tr>
 
-                        <tr class="border-b">
+                        <tr class="border-b anggota-row">
                             <td class="px-4 py-3">AGT002</td>
                             <td class="px-4 py-3">20/10/2025</td>
                             <td class="px-4 py-3">Rangga Saputra</td>
@@ -183,7 +189,7 @@
                             </td>
                         </tr>
 
-                        <tr class="border-b">
+                        <tr class="border-b anggota-row">
                             <td class="px-4 py-3">AGT003</td>
                             <td class="px-4 py-3">21/10/2025</td>
                             <td class="px-4 py-3">Budi Hartanto</td>
@@ -197,7 +203,7 @@
                             </td>
                         </tr>
 
-                        <tr class="border-b">
+                        <tr class="border-b anggota-row">
                             <td class="px-4 py-3">AGT004</td>
                             <td class="px-4 py-3">22/10/2025</td>
                             <td class="px-4 py-3">Dewi Kartika</td>
@@ -211,7 +217,7 @@
                             </td>
                         </tr>
 
-                        <tr class="border-b">
+                        <tr class="border-b anggota-row">
                             <td class="px-4 py-3">AGT005</td>
                             <td class="px-4 py-3">23/10/2025</td>
                             <td class="px-4 py-3">Novi Amelia</td>
@@ -225,7 +231,7 @@
                             </td>
                         </tr>
 
-                        <tr class="border-b">
+                        <tr class="border-b anggota-row">
                             <td class="px-4 py-3">AGT006</td>
                             <td class="px-4 py-3">24/10/2025</td>
                             <td class="px-4 py-3">Andi Pratama</td>
@@ -239,7 +245,7 @@
                             </td>
                         </tr>
 
-                        <tr class="border-b">
+                        <tr class="border-b anggota-row">
                             <td class="px-4 py-3">AGT007</td>
                             <td class="px-4 py-3">25/10/2025</td>
                             <td class="px-4 py-3">Lisa Marlina</td>
@@ -253,7 +259,7 @@
                             </td>
                         </tr>
 
-                        <tr>
+                        <tr class="anggota-row">
                             <td class="px-4 py-3">AGT008</td>
                             <td class="px-4 py-3">26/10/2025</td>
                             <td class="px-4 py-3">Syahrul Ramadhan</td>
@@ -271,30 +277,9 @@
             </div>
 
             <!-- PAGINATION -->
-            <div class="flex items-center justify-center space-x-4 mt-6">
-
-    <!-- Tombol Prev -->
-    <button class="w-8 h-8 flex items-center justify-center bg-gray-300 rounded-full text-gray-700">
-        ‹
-    </button>
-
-    <!-- Halaman Aktif -->
-    <div class="w-7 h-7 flex items-center justify-center bg-[#A63A2D] text-white rounded-full">
-        1
-    </div>
-
-    <!-- Halaman Lain -->
-    <span class="text-gray-800 text-lg">2</span>
-
-    <!-- Titik Titik -->
-    <span class="text-gray-800 text-lg">...</span>
-
-    <!-- Tombol Next -->
-    <button class="w-8 h-8 flex items-center justify-center bg-gray-300 rounded-full text-gray-700">
-        ›
-    </button>
-
-</div>
+            <div id="paginationContainer" class="flex items-center justify-center space-x-4 mt-6">
+                <!-- Pagination akan di-generate oleh JavaScript -->
+            </div>
 
 <script>
 document.querySelectorAll('.menu-item').forEach((item, index) => {
@@ -309,8 +294,91 @@ document.querySelectorAll('.menu-item').forEach((item, index) => {
         if (index === 2) window.location.href = "/kelola-buku";        // Kelola Buku
         if (index === 3) window.location.href = "/laporan-peminjaman"; // Laporan Grafik/Peminjaman
         if (index === 4) window.location.href = "/kelola-user";        // Kelola User
-        if (index === 5) window.location.href = "/pengaturan";         // Pengaturan
     });
+});
+
+// ======================================================
+// FUNGSI PAGINATION
+// ======================================================
+let currentPageAnggota = 1;
+const itemsPerPageAnggota = 5;
+
+function updatePaginationAnggota() {
+    const rows = Array.from(document.querySelectorAll('.anggota-row:not([style*="display: none"])'));
+    const totalItems = rows.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPageAnggota);
+    
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (!paginationContainer) return;
+    
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        // Tampilkan semua rows jika hanya 1 halaman
+        rows.forEach(row => row.style.display = '');
+        return;
+    }
+    
+    let paginationHTML = '';
+    
+    // Tombol Prev
+    paginationHTML += `
+        <button onclick="goToPageAnggota(${currentPageAnggota - 1})" 
+                class="w-8 h-8 flex items-center justify-center bg-gray-300 rounded-full text-gray-700 hover:bg-gray-400 ${currentPageAnggota === 1 ? 'opacity-50 cursor-not-allowed' : ''}"
+                ${currentPageAnggota === 1 ? 'disabled' : ''}>
+            ‹
+        </button>
+    `;
+    
+    // Halaman
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPageAnggota - 1 && i <= currentPageAnggota + 1)) {
+            if (i === currentPageAnggota) {
+                paginationHTML += `<div class="w-7 h-7 flex items-center justify-center bg-[#A63A2D] text-white rounded-full">${i}</div>`;
+            } else {
+                paginationHTML += `<button onclick="goToPageAnggota(${i})" class="w-7 h-7 flex items-center justify-center text-gray-800 hover:bg-gray-200 rounded-full">${i}</button>`;
+            }
+        } else if (i === currentPageAnggota - 2 || i === currentPageAnggota + 2) {
+            paginationHTML += `<span class="text-gray-800 text-lg">...</span>`;
+        }
+    }
+    
+    // Tombol Next
+    paginationHTML += `
+        <button onclick="goToPageAnggota(${currentPageAnggota + 1})" 
+                class="w-8 h-8 flex items-center justify-center bg-gray-300 rounded-full text-gray-700 hover:bg-gray-400 ${currentPageAnggota === totalPages ? 'opacity-50 cursor-not-allowed' : ''}"
+                ${currentPageAnggota === totalPages ? 'disabled' : ''}>
+            ›
+        </button>
+    `;
+    
+    paginationContainer.innerHTML = paginationHTML;
+    
+    // Tampilkan/sembunyikan rows berdasarkan halaman
+    rows.forEach((row, index) => {
+        const startIndex = (currentPageAnggota - 1) * itemsPerPageAnggota;
+        const endIndex = startIndex + itemsPerPageAnggota;
+        
+        if (index >= startIndex && index < endIndex) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function goToPageAnggota(page) {
+    const rows = Array.from(document.querySelectorAll('.anggota-row:not([style*="display: none"])'));
+    const totalPages = Math.ceil(rows.length / itemsPerPageAnggota);
+    
+    if (page < 1 || page > totalPages) return;
+    
+    currentPageAnggota = page;
+    updatePaginationAnggota();
+}
+
+// Inisialisasi pagination saat halaman dimuat
+document.addEventListener('DOMContentLoaded', () => {
+    updatePaginationAnggota();
 });
 </script>
 
@@ -521,6 +589,10 @@ function executeSearch() {
 
         row.style.display = (matchesSearch && matchesStatus && matchesDate) ? "" : "none";
     });
+    
+    // Update pagination setelah filter
+    currentPageAnggota = 1; // Reset ke halaman 1 setelah filter
+    updatePaginationAnggota();
 }
 
 // Event listener
@@ -561,6 +633,288 @@ document.querySelectorAll('tbody tr').forEach((row) => {
             alert('Data berhasil dihapus.');
         }
     });
+});
+
+// ======================================================
+// FUNGSI NOTIFIKASI
+// ======================================================
+let notifInterval;
+
+function toggleNotifPopup() {
+    const popup = document.getElementById('notifPopup');
+    popup.classList.toggle('hidden');
+    popup.classList.toggle('flex');
+    
+    if (!popup.classList.contains('hidden')) {
+        loadNotifikasi();
+    }
+}
+
+function loadNotifikasi() {
+    fetch('/api/notifikasi', {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const notifList = document.getElementById('notifList');
+        const badge = document.getElementById('notifBadge');
+        
+        // Update badge
+        if (data.unread_count > 0) {
+            badge.textContent = data.unread_count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+        
+        // Render notifikasi
+        if (data.notifikasi && data.notifikasi.length > 0) {
+            notifList.innerHTML = data.notifikasi.map(notif => {
+                const tipeColors = {
+                    'info': 'bg-blue-50 border-blue-500',
+                    'warning': 'bg-yellow-50 border-yellow-500',
+                    'success': 'bg-green-50 border-green-500',
+                    'error': 'bg-red-50 border-red-500'
+                };
+                const color = tipeColors[notif.tipe] || tipeColors['info'];
+                const waktu = formatTime(notif.created_at);
+                const unreadClass = !notif.dibaca ? 'font-semibold' : '';
+                
+                return `
+                    <li class="p-3 ${color} rounded-xl border-l-4 ${unreadClass} cursor-pointer hover:shadow-md" onclick="markAsRead(${notif.id})">
+                        <p class="text-sm font-semibold text-gray-800">${notif.judul}</p>
+                        <p class="text-xs text-gray-600 mt-1">${notif.pesan}</p>
+                        <p class="text-xs text-gray-400 mt-1">${waktu}</p>
+                    </li>
+                `;
+            }).join('');
+        } else {
+            notifList.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada notifikasi</li>';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading notifications:', error);
+    });
+}
+
+function markAsRead(id) {
+    fetch(`/api/notifikasi/${id}/read`, {
+        method: 'PUT',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(() => {
+        loadNotifikasi();
+    });
+}
+
+function markAllAsRead() {
+    fetch('/api/notifikasi/read-all', {
+        method: 'PUT',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(() => {
+        loadNotifikasi();
+    });
+}
+
+function formatTime(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Baru saja';
+    if (diffMins < 60) return `${diffMins} menit lalu`;
+    if (diffHours < 24) return `${diffHours} jam lalu`;
+    if (diffDays < 7) return `${diffDays} hari lalu`;
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// Load notifikasi saat halaman dimuat dan update setiap 30 detik
+document.addEventListener('DOMContentLoaded', () => {
+    loadNotifikasi();
+    notifInterval = setInterval(loadNotifikasi, 30000); // Update setiap 30 detik
+});
+
+// Tutup popup saat klik di luar
+document.getElementById('notifPopup').addEventListener('click', function(e) {
+    if (e.target === this) {
+        toggleNotifPopup();
+    }
+});
+</script>
+
+<!-- POPUP NOTIFIKASI -->
+<div id="notifPopup" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-96 max-h-[80vh] overflow-y-auto relative">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-[#A63A2D]">Notifikasi</h3>
+            <div class="flex gap-2">
+                <button onclick="markAllAsRead()" class="text-xs text-blue-600 hover:underline">Tandai semua dibaca</button>
+                <button onclick="toggleNotifPopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+            </div>
+        </div>
+        <ul id="notifList" class="space-y-3">
+            <li class="p-3 text-center text-gray-500">Memuat notifikasi...</li>
+        </ul>
+    </div>
+</div>
+
+<!-- POPUP PESAN -->
+<div id="messagePopup" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-[32rem] max-h-[80vh] overflow-y-auto relative">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-[#A63A2D]">Pesan</h3>
+            <div class="flex gap-2">
+                <button onclick="toggleMessagePopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+            </div>
+        </div>
+        <div class="mb-4 bg-gray-50 rounded-xl p-3">
+            <p class="text-sm font-semibold text-[#A63A2D] mb-2">Kirim Pesan ke Pengguna</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <select id="recipientSelect" class="border rounded p-2 text-sm md:col-span-1"></select>
+                <input id="composeIsi" type="text" class="border rounded p-2 text-sm md:col-span-2" placeholder="Tulis pesan singkat..." />
+            </div>
+            <div class="flex justify-end mt-2">
+                <button class="px-3 py-1 bg-[#A63A2D] text-white rounded text-xs" onclick="sendMessage()">Kirim</button>
+            </div>
+        </div>
+        <ul id="messageList" class="space-y-3">
+            <li class="p-3 text-center text-gray-500">Memuat pesan...</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+function toggleMessagePopup() {
+    const popup = document.getElementById('messagePopup');
+    popup.classList.toggle('hidden');
+    popup.classList.toggle('flex');
+    if (!popup.classList.contains('hidden')) {
+        loadRecipients();
+        loadMessages();
+    }
+}
+function loadMessages() {
+    fetch('/api/pesan?only_inbox=1', {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        const list = document.getElementById('messageList');
+        const badge = document.getElementById('messageBadge');
+        if (badge) {
+            const count = data.unread_count || 0;
+            badge.textContent = count;
+            badge.classList.toggle('hidden', count === 0);
+        }
+        if (Array.isArray(data.data) && data.data.length > 0) {
+            list.innerHTML = data.data.map(m => {
+                const confirmed = m.status === 'confirmed';
+                const status = confirmed ? '<span class="text-green-700 text-xs ml-2">Dikonfirmasi</span>' : '';
+                return `
+                    <li class="p-3 bg-gray-100 rounded-xl shadow hover:shadow-md">
+                        <p class="text-sm font-semibold">Pesan ${status}</p>
+                        <p class="text-sm text-gray-700 mt-1">${m.isi}</p>
+                        <div class="flex justify-end mt-2 text-xs gap-4">
+                            ${!confirmed ? `<button class="text-green-700" onclick="confirmMessage(${m.id})">Konfirmasi</button>` : ''}
+                            <button class="text-blue-700" onclick="replyMessage(${m.id})">Balas</button>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        } else {
+            list.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada pesan</li>';
+        }
+    })
+    .catch(() => {
+        const list = document.getElementById('messageList');
+        list.innerHTML = '<li class="p-3 text-center text-red-600">Gagal memuat pesan</li>';
+    });
+}
+function confirmMessage(id) {
+    fetch(`/api/pesan/${id}/confirm`, {
+        method: 'PUT',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json'
+        }
+    }).then(() => loadMessages());
+}
+function replyMessage(id) {
+    const isi = prompt('Tulis balasan:');
+    if (!isi) return;
+    fetch(`/api/pesan/${id}/reply`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isi })
+    }).then(() => loadMessages());
+}
+function loadRecipients() {
+    fetch('/api/pengguna', {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(users => {
+        const sel = document.getElementById('recipientSelect');
+        if (!sel) return;
+        const onlyPengguna = Array.isArray(users) ? users.filter(u => u.peran === 'pengguna') : [];
+        sel.innerHTML = onlyPengguna.map(u => `<option value="${u.id}">${u.nama} (${u.email})</option>`).join('');
+    });
+}
+function sendMessage() {
+    const sel = document.getElementById('recipientSelect');
+    const isi = document.getElementById('composeIsi');
+    if (!sel || !isi) return;
+    const penerima_id = sel.value;
+    const text = isi.value.trim();
+    if (!penerima_id || !text) return alert('Pilih penerima dan isi pesan');
+    fetch('/api/pesan', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ penerima_id, isi: text })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error();
+        isi.value = '';
+        loadMessages();
+    })
+    .catch(() => alert('Gagal mengirim pesan'));
+}
+document.addEventListener('DOMContentLoaded', () => {
+    loadMessages();
+});
+document.getElementById('messagePopup')?.addEventListener('click', function(e) {
+    if (e.target === this) toggleMessagePopup();
 });
 </script>
 

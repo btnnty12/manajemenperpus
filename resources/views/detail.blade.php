@@ -53,23 +53,6 @@
                 <p class="font-semibold">• Bahasa: {{ $book['bahasa'] }}</p>
             </div>
 
-            <!-- FAVORITE BUTTON -->
-            @php
-                $sessionFavs = session('favorites', []);
-                $isFav = in_array($book['title'], $sessionFavs, true);
-            @endphp
-
-            <form method="POST" action="{{ route('favorite.toggle', $book['title']) }}">
-                @csrf
-                <button type="submit"
-                    class="mt-6 w-full py-3 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-3
-                           transition transform hover:scale-105
-                           {{ $isFav ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600' }}">
-                    <i class="{{ $isFav ? 'fa-solid' : 'fa-regular' }} fa-heart"></i>
-                    {{ $isFav ? 'Favorit' : 'Tambah ke Favorit' }}
-                </button>
-            </form>
-
             <!-- PINJAM BUTTON -->
             <button onclick="window.location.href='{{ route('pengembalian.create', [
                 'title' => $book['title'], 
@@ -85,31 +68,6 @@
 
 </div>
 
-<!-- TOAST POP-UP FAVORITE -->
-@if(session('success'))
-    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg opacity-0 transition-opacity duration-500 z-50">
-        {{ session('success') }}
-    </div>
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            const toast = document.getElementById('toast');
-            if(toast){
-                toast.style.opacity = '1';
-                setTimeout(() => { toast.style.opacity = '0'; }, 2000);
-            }
-        });
-    </script>
-@endif
-
-<script>
-    // Animasi love button
-    document.querySelectorAll('form button').forEach(btn => {
-        btn.addEventListener('click', () => {
-            btn.classList.add('fav-animate');
-            setTimeout(()=> btn.classList.remove('fav-animate'), 150);
-        });
-    });
-</script>
 
 </body>
 </html>
