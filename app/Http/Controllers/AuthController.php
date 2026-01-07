@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Pengguna;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Pengguna;
 
 class AuthController extends Controller
 {
@@ -13,15 +13,15 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'kata_sandi' => 'required'
+            'kata_sandi' => 'required',
         ]);
 
         // Cari user berdasarkan email
         $user = Pengguna::where('email', $request->email)->first();
 
-        if (!$user) {
+        if (! $user) {
             return back()->withErrors([
-                'email' => 'Email tidak ditemukan!'
+                'email' => 'Email tidak ditemukan!',
             ])->withInput($request->only('email'));
         }
 
@@ -35,8 +35,8 @@ class AuthController extends Controller
             // Set session data (dipakai RoleMiddleware)
             $request->session()->put([
                 'email' => $user->email,
-                'nama'  => $user->nama,
-                'role'  => $user->peran,
+                'nama' => $user->nama,
+                'role' => $user->peran,
             ]);
 
             // Redirect sesuai peran
@@ -53,7 +53,7 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'Email atau kata sandi salah!'
+            'email' => 'Email atau kata sandi salah!',
         ])->withInput($request->only('email'));
     }
 

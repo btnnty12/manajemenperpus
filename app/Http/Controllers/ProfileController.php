@@ -15,7 +15,7 @@ class ProfileController extends Controller
         // Validasi input
         $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:pengguna,email,' . $user->id,
+            'email' => 'required|email|max:255|unique:pengguna,email,'.$user->id,
             'kata_sandi' => 'nullable|string|min:6|confirmed', // optional
             'phone' => 'nullable|string|max:20',
             'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',

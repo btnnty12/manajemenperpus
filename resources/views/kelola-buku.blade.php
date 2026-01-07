@@ -66,11 +66,13 @@
 /* --- TOMBOL TAMBAH BUKU & IMPORT EXCEL --- */
 .top-buttons {
     position: absolute;
-    right: 40px;
+    right: 10px;
     top: 221px;    /* lebih naik sedikit dari sebelumnya */
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
+    transform: scale(0.9);
+    transform-origin: top right;
 }
 
 .btn-green {
@@ -136,7 +138,7 @@
     <div class="flex flex-col items-center space-y-20 pt-20 w-full">
         <a href="{{ route('admin') }}" class="menu-item" aria-label="Dashboard"><x-icon name="home" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('data.anggota') }}" class="menu-item" aria-label="Data Anggota"><x-icon name="anggota" class="w-7 h-7 text-white" /></a>
-        <a href="{{ route('kelola.buku') }}" class="menu-item" aria-label="Kelola Buku"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
+        <a href="{{ route('kelola-buku.index') }}" class="menu-item" aria-label="Kelola Buku"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('laporan-peminjaman') }}" class="menu-item" aria-label="Laporan Peminjaman"><x-icon name="grafik" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('kelola-user') }}" class="menu-item" aria-label="Kelola User"><x-icon name="user" class="w-7 h-7 text-white" /></a>
     </div>
@@ -223,27 +225,31 @@
     <button class="btn-white" onclick="openImportExcelModal()">
         <i class="fa-solid fa-file-import"></i> Import Excel
     </button>
+    
+    <a class="btn-white" href="{{ session('role') === 'staff' ? route('staff.dashboard') : route('admin') }}">
+        <i class="fa-solid fa-arrow-left"></i> Kembali ke Dashboard Staff
+    </a>
 </div>
 
     <!-- 4 KOTAK STATISTIK -->
     <div class="stats-row">
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">255</h2>
+            <h2 class="text-4xl font-bold">{{ $stats['totalJudul'] ?? 0 }}</h2>
             <p>Total Buku</p>
         </div>
 
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">224</h2>
+            <h2 class="text-4xl font-bold">{{ $stats['tersedia'] ?? 0 }}</h2>
             <p>Buku Tersedia</p>
         </div>
 
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">150</h2>
+            <h2 class="text-4xl font-bold">{{ $stats['dipinjam'] ?? 0 }}</h2>
             <p>Sedang Dipinjam</p>
         </div>
 
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">10</h2>
+            <h2 class="text-4xl font-bold">{{ $stats['bukuBaruBulanIni'] ?? 0 }}</h2>
             <p>Buku Baru Bulan Ini</p>
         </div>
     </div>
@@ -295,98 +301,21 @@
 
         <tbody id="bukuTableBody">
 
-            <!-- 1 -->
-            <tr class="border-b buku-row" data-judul="bahasa inggris untuk akademik" data-kategori="Bahasa" data-status="Tersedia">
-                <td class="px-6 py-3">BK-001</td>
-                <td class="px-6 py-3">Rak-001</td>
-                <td class="px-6 py-3">Bahasa Inggris untuk Akademik</td>
-                <td class="px-6 py-3">Bahasa</td>
-                <td class="px-6 py-3">8</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
-            </tr>
-
-            <!-- 2 -->
-            <tr class="border-b buku-row" data-judul="algoritma dan struktur data" data-kategori="Pemrograman" data-status="Tidak Tersedia">
-                <td class="px-6 py-3">BK-002</td>
-                <td class="px-6 py-3">Rak-002</td>
-                <td class="px-6 py-3">Algoritma dan Struktur Data</td>
-                <td class="px-6 py-3">Pemrograman</td>
-                <td class="px-6 py-3">3</td>
-                <td class="px-6 py-3 text-red-600 font-semibold">Tidak Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
-            </tr>
-
-            <!-- 3 -->
-            <tr class="border-b buku-row" data-judul="psikologi remaja modern" data-kategori="Psikologi" data-status="Tersedia">
-                <td class="px-6 py-3">BK-003</td>
-                <td class="px-6 py-3">Rak-003</td>
-                <td class="px-6 py-3">Psikologi Remaja Modern</td>
-                <td class="px-6 py-3">Psikologi</td>
-                <td class="px-6 py-3">6</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
-            </tr>
-
-            <!-- 4 -->
-            <tr class="border-b buku-row" data-judul="dasar-dasar akuntansi" data-kategori="Akuntansi" data-status="Tersedia">
-                <td class="px-6 py-3">BK-004</td>
-                <td class="px-6 py-3">Rak-004</td>
-                <td class="px-6 py-3">Dasar-Dasar Akuntansi</td>
-                <td class="px-6 py-3">Akuntansi</td>
-                <td class="px-6 py-3">10</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
-            </tr>
-
-            <!-- 5 -->
-            <tr class="border-b buku-row" data-judul="manajemen proyek ti" data-kategori="Manajemen" data-status="Tidak Tersedia">
-                <td class="px-6 py-3">BK-005</td>
-                <td class="px-6 py-3">Rak-005</td>
-                <td class="px-6 py-3">Manajemen Proyek TI</td>
-                <td class="px-6 py-3">Manajemen</td>
+            @forelse ($buku as $item)
+            @php
+                $status = ($item->stok ?? 0) > 0 ? 'Tersedia' : 'Tidak Tersedia';
+                $statusClass = ($item->stok ?? 0) > 0 ? 'text-green-600' : 'text-red-600';
+            @endphp
+            <tr class="border-b buku-row"
+                data-judul="{{ strtolower($item->judul ?? '') }}"
+                data-kategori="{{ $item->genre ?? '' }}"
+                data-status="{{ $status }}">
+                <td class="px-6 py-3">{{ $item->id }}</td>
                 <td class="px-6 py-3">-</td>
-                <td class="px-6 py-3 text-red-600 font-semibold">Tidak Tersedia</td>
+                <td class="px-6 py-3">{{ $item->judul }}</td>
+                <td class="px-6 py-3">{{ $item->genre }}</td>
+                <td class="px-6 py-3">{{ $item->stok }}</td>
+                <td class="px-6 py-3 font-semibold {{ $statusClass }}">{{ $status }}</td>
                 <td class="px-6 py-3 flex gap-2">
                     <button class="p-2 rounded hover:bg-gray-100" title="Detail">
                         <x-icon name="eye" class="w-5 h-5 text-gray-700" />
@@ -399,57 +328,11 @@
                     </button>
                 </td>
             </tr>
-
-            <!-- 6 -->
-            <tr class="border-b buku-row" data-judul="statistika untuk penelitian" data-kategori="Statistik" data-status="Tersedia">
-                <td class="px-6 py-3">BK-006</td>
-                <td class="px-6 py-3">Rak-006</td>
-                <td class="px-6 py-3">Statistika untuk Penelitian</td>
-                <td class="px-6 py-3">Statistik</td>
-                <td class="px-6 py-3">14</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
+            @empty
+            <tr class="buku-row">
+                <td class="px-6 py-3 text-center text-gray-500" colspan="7">Belum ada data buku.</td>
             </tr>
-
-            <!-- 7 -->
-            <tr class="border-b buku-row" data-judul="pengantar kecerdasan buatan" data-kategori="AI" data-status="Tersedia">
-                <td class="px-6 py-3">BK-007</td>
-                <td class="px-6 py-3">Rak-007</td>
-                <td class="px-6 py-3">Pengantar Kecerdasan Buatan</td>
-                <td class="px-6 py-3">AI</td>
-                <td class="px-6 py-3">23</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-3">
-                    <img src="{{ asset('icons/info.png') }}" class="w-5">
-                    <img src="{{ asset('icons/edit.png') }}" class="w-5">
-                    <img src="{{ asset('icons/delete.png') }}" class="w-5">
-                </td>
-            </tr>
-
-            <!-- 8 -->
-            <tr class="buku-row" data-judul="sejarah nusantara kuno" data-kategori="Budaya" data-status="Tidak Tersedia">
-                <td class="px-6 py-3">BK-008</td>
-                <td class="px-6 py-3">Rak-008</td>
-                <td class="px-6 py-3">Sejarah Nusantara Kuno</td>
-                <td class="px-6 py-3">Budaya</td>
-                <td class="px-6 py-3">8</td>
-                <td class="px-6 py-3 text-red-600 font-semibold">Tidak Tersedia</td>
-                <td class="px-6 py-3 flex gap-3">
-                    <img src="{{ asset('icons/info.png') }}" class="w-5">
-                    <img src="{{ asset('icons/edit.png') }}" class="w-5">
-                    <img src="{{ asset('icons/delete.png') }}" class="w-5">
-                </td>
-            </tr>
+            @endforelse
 
         </tbody>
     </table>
@@ -473,28 +356,25 @@
             <button onclick="closeTambahBukuModal()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
         </div>
 
-        <form id="tambahBukuForm" onsubmit="handleTambahBuku(event)" enctype="multipart/form-data">
+        <form id="tambahBukuForm" action="{{ route('kelola-buku.store') }}" method="POST">
+            @csrf
             <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold mb-2">ID Buku</label>
-                    <input type="text" name="id_buku" class="w-full p-3 rounded-lg border shadow" placeholder="BK-001" required>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-semibold mb-2">Rak Buku</label>
-                    <input type="text" name="rak" class="w-full p-3 rounded-lg border shadow" placeholder="Rak-001" required>
-                </div>
-                
                 <div>
                     <label class="block text-sm font-semibold mb-2">Judul Buku</label>
                     <input type="text" name="judul" class="w-full p-3 rounded-lg border shadow" placeholder="Judul Buku" required>
                 </div>
                 
                 <div>
+                    <label class="block text-sm font-semibold mb-2">Penulis</label>
+                    <input type="text" name="penulis" class="w-full p-3 rounded-lg border shadow" placeholder="Nama penulis" required>
+                </div>
+                
+                <div>
                     <label class="block text-sm font-semibold mb-2">Kategori</label>
-                    <select name="kategori" class="w-full p-3 rounded-lg border shadow" required>
+                    <select name="kategori" class="w-full p-3 rounded-lg border shadow">
                         <option value="">Pilih Kategori</option>
-                        <option value="Bahasa">Bahasa</option>
+                        <option value="Teknologi">Teknologi</option>
+                        <option value="Keamanan">Keamanan</option>
                         <option value="Pemrograman">Pemrograman</option>
                         <option value="Psikologi">Psikologi</option>
                         <option value="Akuntansi">Akuntansi</option>
@@ -504,40 +384,30 @@
                         <option value="Budaya">Budaya</option>
                     </select>
                 </div>
-                
+
                 <div>
-                    <label class="block text-sm font-semibold mb-2">Cover Buku</label>
-                    <input type="file" name="cover" id="coverInput" accept="image/*" class="w-full p-3 rounded-lg border shadow" onchange="previewCover(event)">
-                    <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, atau GIF (Max: 2MB)</p>
-                    <div id="coverPreview" class="mt-3 hidden">
-                        <img id="coverPreviewImg" src="" alt="Preview Cover" class="w-full h-48 object-cover rounded-lg border shadow">
-                        <button type="button" onclick="removeCoverPreview()" class="mt-2 text-sm text-red-600 hover:underline">
-                            <i class="fa-solid fa-trash"></i> Hapus Preview
-        </button>
-                    </div>
+                    <label class="block text-sm font-semibold mb-2">Tahun Terbit</label>
+                    <input type="number" name="tahun_terbit" class="w-full p-3 rounded-lg border shadow" placeholder="2024" min="1000" max="9999">
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold mb-2">Stok</label>
                     <input type="number" name="stok" class="w-full p-3 rounded-lg border shadow" placeholder="10" min="0" required>
-        </div>
+                </div>
 
                 <div>
-                    <label class="block text-sm font-semibold mb-2">Status</label>
-                    <select name="status" class="w-full p-3 rounded-lg border shadow" required>
-                        <option value="Tersedia">Tersedia</option>
-                        <option value="Tidak Tersedia">Tidak Tersedia</option>
-                    </select>
+                    <label class="block text-sm font-semibold mb-2">Deskripsi</label>
+                    <textarea name="deskripsi" class="w-full p-3 rounded-lg border shadow" rows="3" placeholder="Deskripsi singkat"></textarea>
                 </div>
             </div>
             
             <div class="flex gap-4 mt-6">
                 <button type="button" onclick="closeTambahBukuModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400">
                     Batal
-        </button>
+                </button>
                 <button type="submit" class="flex-1 bg-[#A63A2D] text-white py-3 rounded-lg font-bold hover:bg-[#923223]">
                     Simpan
-        </button>
+                </button>
             </div>
         </form>
     </div>
@@ -988,8 +858,9 @@ function handleDeleteBuku(row, data) {
 }
 
 function attachRowActions(row) {
-    const icons = row.querySelectorAll('img');
-    if (icons.length < 3) return;
+    const detailBtn = row.querySelector('button[title="Detail"]');
+    const editBtn = row.querySelector('button[title="Edit"]');
+    const deleteBtn = row.querySelector('button[title="Hapus"]');
 
     const getData = () => {
         const cells = row.querySelectorAll('td');
@@ -1003,9 +874,9 @@ function attachRowActions(row) {
         };
     };
 
-    icons[0].onclick = () => openDetailBukuModal(getData());
-    icons[1].onclick = () => openEditBukuModal(getData(), row);
-    icons[2].onclick = () => handleDeleteBuku(row, getData());
+    if (detailBtn) detailBtn.onclick = () => openDetailBukuModal(getData());
+    if (editBtn) editBtn.onclick = () => openEditBukuModal(getData(), row);
+    if (deleteBtn) deleteBtn.onclick = () => handleDeleteBuku(row, getData());
 }
 
 function initRowActions() {

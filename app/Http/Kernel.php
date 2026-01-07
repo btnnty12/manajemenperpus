@@ -36,7 +36,7 @@ class Kernel extends HttpKernel
         'role' => \App\Http\Middleware\RoleMiddleware::class,
 
         // default
-        'signed'    => \Illuminate\Routing\Middleware\ValidateSignature::class,
-        'throttle'  => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
+        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
     ];
 }

@@ -38,7 +38,7 @@
     <div class="flex flex-col items-center space-y-20 pt-20 w-full">
         <a href="{{ route('admin') }}" class="menu-item" aria-label="Dashboard"><x-icon name="home" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('data.anggota') }}" class="menu-item" aria-label="Data Anggota"><x-icon name="anggota" class="w-7 h-7 text-white" /></a>
-        <a href="{{ route('kelola.buku') }}" class="menu-item" aria-label="Kelola Buku"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
+        <a href="{{ route('kelola-buku.index') }}" class="menu-item" aria-label="Kelola Buku"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('laporan-peminjaman') }}" class="menu-item" aria-label="Laporan Peminjaman"><x-icon name="grafik" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('kelola-user') }}" class="menu-item" aria-label="Kelola User"><x-icon name="user" class="w-7 h-7 text-white" /></a>
     </div>
@@ -81,19 +81,19 @@
         <!-- STATISTIK -->
         <div class="flex justify-center gap-7 mt-8">
             <div class="bg-[#A24731] w-56 h-28 rounded-xl text-white shadow-xl flex flex-col justify-center items-center">
-                <h2 class="text-4xl font-bold">52</h2>
+                <h2 class="text-4xl font-bold" id="statTotal">0</h2>
                 <p>Total User</p>
             </div>
             <div class="bg-[#A24731] w-56 h-28 rounded-xl text-white shadow-xl flex flex-col justify-center items-center">
-                <h2 class="text-4xl font-bold">5</h2>
+                <h2 class="text-4xl font-bold" id="statAdmin">0</h2>
                 <p>Admin</p>
             </div>
             <div class="bg-[#A24731] w-56 h-28 rounded-xl text-white shadow-xl flex flex-col justify-center items-center">
-                <h2 class="text-4xl font-bold">10</h2>
+                <h2 class="text-4xl font-bold" id="statStaff">0</h2>
                 <p>Staff</p>
             </div>
             <div class="bg-[#A24731] w-56 h-28 rounded-xl text-white shadow-xl flex flex-col justify-center items-center">
-                <h2 class="text-4xl font-bold">37</h2>
+                <h2 class="text-4xl font-bold" id="statPengguna">0</h2>
                 <p>User (Mahasiswa)</p>
             </div>
         </div>
@@ -101,20 +101,37 @@
         <!-- FORM TAMBAH USER -->
         <div class="bg-white w-[97%] shadow-lg rounded-lg p-6 mt-10">
             <h2 class="text-xl font-bold mb-4 text-[#A63A2D]">Tambah User Baru</h2>
+            
+            @if(session('success'))
+                <div class="bg-green-100 text-green-800 p-3 rounded mb-4">{{ session('success') }}</div>
+            @endif
+            @if($errors->any())
+                <div class="bg-red-100 text-red-800 p-3 rounded mb-4">
+                    <ul class="list-disc pl-5 text-sm">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-            <div class="grid grid-cols-3 gap-5">
-                <input type="text" placeholder="Nama Lengkap" class="p-3 rounded-lg shadow border">
-                <input type="text" placeholder="Username" class="p-3 rounded-lg shadow border">
-                <select class="p-3 rounded-lg shadow border">
-                    <option>Pilih Role</option>
-                    <option>Admin</option>
-                    <option>Staff</option>
-                    <option>User (Mahasiswa)</option>
-                </select>
-                <input type="text" placeholder="Email" class="p-3 rounded-lg shadow border">
-                <input type="password" placeholder="Password" class="p-3 rounded-lg shadow border">
-                <button class="bg-[#2476FF] text-white rounded-lg font-bold py-2 px-4">Tambah</button>
-            </div>
+            <form id="formTambahUser" action="{{ route('kelola-user.store') }}" method="POST">
+                @csrf
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <input type="text" name="nama" placeholder="Nama Lengkap" class="p-3 rounded-lg shadow border" required>
+                    <select name="peran" class="p-3 rounded-lg shadow border" required>
+                        <option value="">Pilih Role</option>
+                        <option value="admin">Admin</option>
+                        <option value="staff">Staff</option>
+                        <option value="pengguna">User (Mahasiswa)</option>
+                    </select>
+                    <input type="email" name="email" placeholder="Email" class="p-3 rounded-lg shadow border" required>
+                    <input type="password" name="password" placeholder="Password" class="p-3 rounded-lg shadow border md:col-span-2" required>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="bg-[#2476FF] text-white rounded-lg font-bold py-2 px-4">Tambah</button>
+                </div>
+            </form>
         </div>
 
         <!-- FILTER -->
@@ -147,41 +164,7 @@
                 </tr>
             </thead>
             <tbody id="userTableBody">
-                <tr class="border-b user-row" data-nama="fayza azzahra" data-username="fayza12" data-email="fayza@gmail.com" data-role="Admin">
-                    <td class="px-6 py-3">USR-001</td>
-                    <td class="px-6 py-3">Fayza Azzahra</td>
-                    <td class="px-6 py-3">fayza12</td>
-                    <td class="px-6 py-3">fayza@gmail.com</td>
-                    <td class="px-6 py-3 font-semibold text-blue-600">Admin</td>
-                    <td class="px-6 py-3 flex gap-4">
-                        <img src="{{ asset('icons/edit.png') }}" class="w-5">
-                        <img src="{{ asset('icons/delete.png') }}" class="w-5">
-                    </td>
-                </tr>
-
-                <tr class="border-b user-row" data-nama="nuriyanti" data-username="nuriyanti14" data-email="nuriyanti@gmail.com" data-role="Staff">
-                    <td class="px-6 py-3">USR-002</td>
-                    <td class="px-6 py-3">Nuriyanti</td>
-                    <td class="px-6 py-3">Nuriyanti14</td>
-                    <td class="px-6 py-3">Nuriyanti@gmail.com</td>
-                    <td class="px-6 py-3 font-semibold text-green-600">Staff</td>
-                    <td class="px-6 py-3 flex gap-4">
-                        <img src="{{ asset('icons/edit.png') }}" class="w-5">
-                        <img src="{{ asset('icons/delete.png') }}" class="w-5">
-                    </td>
-                </tr>
-
-                <tr class="border-b user-row" data-nama="kaysa dzikrya" data-username="kaysa11" data-email="kaysa@gmail.com" data-role="User">
-                    <td class="px-6 py-3">USR-003</td>
-                    <td class="px-6 py-3">Kaysa dzikrya</td>
-                    <td class="px-6 py-3">kaysa11</td>
-                    <td class="px-6 py-3">kaysa@gmail.com</td>
-                    <td class="px-6 py-3 font-semibold text-purple-600">User</td>
-                    <td class="px-6 py-3 flex gap-4">
-                        <img src="{{ asset('icons/edit.png') }}" class="w-5">
-                        <img src="{{ asset('icons/delete.png') }}" class="w-5">
-                    </td>
-                </tr>
+                <!-- Baris user akan di-render oleh JavaScript -->
             </tbody>
         </table>
     </div>
@@ -505,7 +488,8 @@ function goToPageUser(page) {
 
 // Inisialisasi pagination saat halaman dimuat
 document.addEventListener('DOMContentLoaded', () => {
-    updatePaginationUser();
+    loadStats();
+    loadUsers();
 });
 
 // ======================================================
@@ -630,6 +614,190 @@ document.getElementById('notifPopup').addEventListener('click', function(e) {
         toggleNotifPopup();
     }
 });
+
+// Integrasi API Pengguna: stats, load, edit, delete, tambah
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+async function loadStats() {
+    try {
+        const res = await fetch('/api/pengguna/stats', {
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) return;
+        const s = await res.json();
+        const elTotal = document.getElementById('statTotal');
+        const elAdmin = document.getElementById('statAdmin');
+        const elStaff = document.getElementById('statStaff');
+        const elPengguna = document.getElementById('statPengguna');
+        if (elTotal) elTotal.textContent = s.total ?? 0;
+        if (elAdmin) elAdmin.textContent = s.admin ?? 0;
+        if (elStaff) elStaff.textContent = s.staff ?? 0;
+        if (elPengguna) elPengguna.textContent = s.pengguna ?? 0;
+    } catch (e) {
+        console.error('Gagal memuat statistik', e);
+    }
+}
+
+function roleLabel(peran) {
+    if (peran === 'admin') return { label: 'Admin', cls: 'text-blue-600' };
+    if (peran === 'staff') return { label: 'Staff', cls: 'text-green-600' };
+    return { label: 'User', cls: 'text-purple-600' };
+}
+
+function padId(id) {
+    const s = String(id);
+    return 'USR-' + s.padStart(3, '0');
+}
+
+function emailLocal(email) {
+    if (!email) return '';
+    return String(email).split('@')[0];
+}
+
+function renderUsers(users) {
+    const tbody = document.getElementById('userTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    users.forEach(u => {
+        const rl = roleLabel(u.peran);
+        const tr = document.createElement('tr');
+        tr.className = 'border-b user-row';
+        tr.setAttribute('data-nama', u.nama || '');
+        tr.setAttribute('data-username', emailLocal(u.email));
+        tr.setAttribute('data-email', u.email || '');
+        tr.setAttribute('data-role', rl.label);
+        tr.innerHTML = `
+            <td class="px-6 py-3">${padId(u.id)}</td>
+            <td class="px-6 py-3">${u.nama || ''}</td>
+            <td class="px-6 py-3">${emailLocal(u.email)}</td>
+            <td class="px-6 py-3">${u.email || ''}</td>
+            <td class="px-6 py-3 font-semibold ${rl.cls}">${rl.label}</td>
+            <td class="px-6 py-3 flex gap-4">
+                <button class="btn-edit" data-id="${u.id}" title="Edit">
+                    <x-icon name="edit" class="w-5 h-5 text-gray-700" />
+                </button>
+                <button class="btn-delete" data-id="${u.id}" title="Hapus">
+                    <x-icon name="delete" class="w-5 h-5 text-gray-700" />
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+    attachActionHandlers();
+    updatePaginationUser();
+    const noResults = document.getElementById('noResults');
+    if (noResults) {
+        if (users.length === 0) noResults.classList.remove('hidden');
+        else noResults.classList.add('hidden');
+    }
+}
+
+async function loadUsers() {
+    try {
+        const res = await fetch('/api/pengguna?per_page=200', { headers: { 'Accept': 'application/json' }});
+        if (!res.ok) return;
+        const json = await res.json();
+        const data = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+        renderUsers(data);
+    } catch (e) {
+        console.error('Gagal memuat pengguna', e);
+    }
+}
+
+function attachActionHandlers() {
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            if (!confirm('Hapus pengguna ini?')) return;
+            try {
+                const res = await fetch(`/api/pengguna/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                    }
+                });
+                if (res.ok) {
+                    await loadUsers();
+                    await loadStats();
+                }
+            } catch (e) {
+                console.error('Gagal menghapus pengguna', e);
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            const namaBaru = prompt('Nama baru (kosongkan untuk skip):');
+            const emailBaru = prompt('Email baru (kosongkan untuk skip):');
+            const peranBaru = prompt('Peran (admin/staff/pengguna), kosongkan untuk skip:');
+            const payload = {};
+            if (namaBaru) payload.nama = namaBaru;
+            if (emailBaru) payload.email = emailBaru;
+            if (peranBaru) payload.peran = peranBaru;
+            if (Object.keys(payload).length === 0) return;
+            try {
+                const res = await fetch(`/api/pengguna/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (res.ok) {
+                    await loadUsers();
+                    await loadStats();
+                }
+            } catch (e) {
+                console.error('Gagal memperbarui pengguna', e);
+            }
+        });
+    });
+}
+
+const formTambah = document.getElementById('formTambahUser');
+if (formTambah) {
+    formTambah.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const fd = new FormData(formTambah);
+        const payload = {
+            nama: fd.get('nama'),
+            email: fd.get('email'),
+            password: fd.get('password'),
+            peran: fd.get('peran'),
+        };
+        try {
+            const res = await fetch(formTambah.getAttribute('action'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                },
+                body: JSON.stringify(payload),
+            });
+            if (res.ok) {
+                formTambah.reset();
+                await loadUsers();
+                await loadStats();
+                alert('Pengguna berhasil ditambahkan');
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert('Gagal menambah pengguna: ' + (err.message || 'Error'));
+            }
+        } catch (e) {
+            console.error('Gagal menambah pengguna', e);
+            alert('Terjadi kesalahan jaringan');
+        }
+    });
+}
 </script>
 
 <!-- POPUP NOTIFIKASI -->

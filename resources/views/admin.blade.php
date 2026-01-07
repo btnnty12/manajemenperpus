@@ -68,7 +68,7 @@
     <div class="flex flex-col items-center space-y-20 pt-20 w-full">
         <a href="{{ route('admin') }}" class="menu-item" aria-label="Dashboard"><x-icon name="home" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('data.anggota') }}" class="menu-item" aria-label="Data Anggota"><x-icon name="anggota" class="w-7 h-7 text-white" /></a>
-        <a href="{{ route('kelola.buku') }}" class="menu-item" aria-label="Kelola Buku"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
+        <a href="{{ route('kelola-buku.index') }}" class="menu-item" aria-label="Kelola Buku"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('laporan-peminjaman') }}" class="menu-item" aria-label="Laporan Peminjaman"><x-icon name="grafik" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('kelola-user') }}" class="menu-item" aria-label="Kelola User"><x-icon name="user" class="w-7 h-7 text-white" /></a>
     </div>
@@ -129,7 +129,6 @@
               <div class="max-w-md">
                 <h1 class="text-5xl md:text-6xl font-extrabold leading-tight">Hi, Admin</h1>
                 <p class="mt-3 text-white/90">Pantau aktivitas peminjaman dan koleksi terbaru hari ini.</p>
-                <button class="mt-6 inline-block bg-white text-amber-700 font-semibold px-5 py-2 rounded-full shadow">Jelajahi Sekarang!</button>
               </div>
             </div>
 
@@ -217,7 +216,6 @@
             <div class="p-6 rounded-2xl shadow-lg bg-white h-full">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold">Aktivitas Pengguna Terbaru</h3>
-                <button class="text-sm text-amber-600 font-medium">Lihat Semua</button>
               </div>
 
               <div class="max-h-[520px] overflow-auto scrollbar-thin pr-2">

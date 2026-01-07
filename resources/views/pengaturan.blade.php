@@ -34,7 +34,7 @@
     <div class="flex flex-col items-center space-y-20 pt-20">
         <a href="{{ route('admin') }}" class="menu-item" data-index="0"><x-icon name="home" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('data.anggota') }}" class="menu-item" data-index="1"><x-icon name="anggota" class="w-7 h-7 text-white" /></a>
-        <a href="{{ route('kelola.buku') }}" class="menu-item" data-index="2"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
+        <a href="{{ route('kelola-buku.index') }}" class="menu-item" data-index="2"><x-icon name="buku" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('laporan-peminjaman') }}" class="menu-item" data-index="3"><x-icon name="grafik" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('kelola-user') }}" class="menu-item" data-index="4"><x-icon name="user" class="w-7 h-7 text-white" /></a>
         <a href="{{ route('pengaturan') }}" class="menu-item" data-index="5"><x-icon name="setting" class="w-7 h-7 text-white" /></a>

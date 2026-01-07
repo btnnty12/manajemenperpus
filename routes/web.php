@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AktifitasController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\StaffBukuController;
+use App\Http\Controllers\KelolaBukuController;
 use App\Models\Buku;
 use Illuminate\Support\Facades\Route;
 
@@ -23,7 +24,7 @@ Route::view('/welcome', 'welcome');
 Route::get('/detail/{slug}', function (string $slug) {
     $books = Buku::dummyData();
 
-    if (!isset($books[$slug])) {
+    if (! isset($books[$slug])) {
         abort(404);
     }
 
@@ -56,6 +57,7 @@ Route::middleware(['auth'])->group(function () {
             'email' => session('email'),
             'role' => session('role'),
         ];
+
         return view('home', ['user' => $user]);
     })
         ->middleware('role:pengguna,staff,admin')
@@ -75,6 +77,7 @@ Route::middleware(['auth'])->group(function () {
             'email' => session('email'),
             'role' => session('role'),
         ];
+
         return view('index', ['user' => $user]);
     })
         ->middleware('role:pengguna')
@@ -86,6 +89,7 @@ Route::middleware(['auth'])->group(function () {
             'email' => session('email'),
             'role' => session('role'),
         ];
+
         return view('create', ['user' => $user]);
     })
         ->middleware('role:pengguna')
@@ -103,6 +107,7 @@ Route::middleware(['auth'])->group(function () {
         if (session('role') === 'admin') {
             return view('pengaturan', ['user' => $user]);
         }
+
         return view('pengaturan-user', ['user' => $user]);
     })
         ->middleware('role:pengguna,admin')
@@ -136,6 +141,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/pengguna', [\App\Http\Controllers\PenggunaController::class, 'index'])
         ->middleware('role:admin,staff')
         ->name('pengguna.index');
+    Route::get('/api/pengguna/stats', [\App\Http\Controllers\PenggunaController::class, 'stats'])
+        ->middleware('role:admin,staff')
+        ->name('pengguna.stats');
+    Route::get('/api/pengguna/{id}', [\App\Http\Controllers\PenggunaController::class, 'show'])
+        ->middleware('role:admin,staff')
+        ->name('pengguna.show');
+    Route::put('/api/pengguna/{id}', [\App\Http\Controllers\PenggunaController::class, 'update'])
+        ->middleware('role:admin')
+        ->name('pengguna.update');
+    Route::delete('/api/pengguna/{id}', [\App\Http\Controllers\PenggunaController::class, 'destroy'])
+        ->middleware('role:admin')
+        ->name('pengguna.destroy');
 
     // Dashboard staff
     Route::view('/staff', 'staff')
@@ -145,9 +162,44 @@ Route::middleware(['auth'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Halaman Operasional Admin & Staff (Shared)
+|--------------------------------------------------------------------------
+*/
+    Route::middleware(['auth', 'role:admin,staff'])->group(function () {
+
+        // ===== KELOLA BUKU (SATU MODUL) =====
+        Route::get('/kelola-buku', [KelolaBukuController::class, 'index'])
+            ->name('kelola-buku.index');
+
+        Route::post('/kelola-buku', [KelolaBukuController::class, 'store'])
+            ->middleware('role:admin,staff')
+            ->name('kelola-buku.store');
+
+        Route::post('/kelola-buku/import', [KelolaBukuController::class, 'importProcess'])
+            ->middleware('role:admin')
+            ->name('kelola-buku.import');
+
+        Route::get('/kelola-buku/{id}', [KelolaBukuController::class, 'show'])
+            ->middleware('role:admin')
+            ->name('kelola-buku.show');
+
+        Route::put('/kelola-buku/{id}', [KelolaBukuController::class, 'update'])
+            ->middleware('role:admin')
+            ->name('kelola-buku.update');
+
+        Route::delete('/kelola-buku/{id}', [KelolaBukuController::class, 'destroy'])
+            ->middleware('role:admin')
+            ->name('kelola-buku.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN AREA
 |--------------------------------------------------------------------------
 */
+Route::delete('/aktifitas/{id}', [AktifitasController::class, 'destroy'])
+    ->name('aktifitas.destroy');
+
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin');
 });
@@ -155,30 +207,27 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 // Halaman operasional ADMIN
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::view('/data-anggota', 'data-anggota')->name('data.anggota');
-    Route::view('/kelola-buku', 'kelola-buku')->name('kelola.buku');
-    Route::post('/kelola-buku/import', [StaffBukuController::class, 'import'])->name('kelola-buku.import');
     Route::view('/laporan-peminjaman', 'laporan-peminjaman')->name('laporan-peminjaman');
     Route::view('/kelola-user', 'kelola-user')->name('kelola-user');
+    Route::post('/kelola-user', [\App\Http\Controllers\PenggunaController::class, 'store'])->name('kelola-user.store');
 });
 
 // Halaman operasional STAFF (path terpisah tapi UI sama)
 Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->group(function () {
     Route::view('/', 'staff')->name('dashboard');
     Route::view('/data-anggota', 'staff.data-anggota')->name('data-anggota');
-    Route::view('/kelola-buku', 'staff.kelola-buku')->name('kelola-buku');
-    Route::view('/kelola-buku/create', 'staff.kelola-buku-create')->name('kelola-buku.create');
-    Route::view('/kelola-buku/import', 'staff.kelola-buku-import')->name('kelola-buku.import');
-    Route::get('/kelola-buku/export', [StaffBukuController::class, 'export'])->name('kelola-buku.export');
     Route::view('/laporan-peminjaman', 'staff.laporan-peminjaman')->name('laporan-peminjaman');
     Route::view('/pengaturan', 'staff.pengaturan')->name('pengaturan');
-    Route::post('/kelola-buku/import', [StaffBukuController::class, 'import'])->name('kelola-buku.import.process');
-    
+    Route::get('/kelola-buku', [KelolaBukuController::class, 'index'])->name('kelola-buku');
+    Route::post('/kelola-buku', [KelolaBukuController::class, 'store'])->name('kelola-buku.store');
+    Route::post('/kelola-buku/import', [KelolaBukuController::class, 'importProcess'])->name('kelola-buku.import.process');
+
     // Route untuk log performa pencarian (tanpa controller baru)
     Route::post('/log-search', function (\Illuminate\Http\Request $request) {
-        if (!\Illuminate\Support\Facades\Auth::check()) {
+        if (! \Illuminate\Support\Facades\Auth::check()) {
             return response()->json(['success' => false], 401);
         }
-        
+
         try {
             \App\Models\LogPencarian::create([
                 'pengguna_id' => \Illuminate\Support\Facades\Auth::id(),
@@ -187,6 +236,7 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
                 'algorithm' => $request->input('algorithm', 'bf'),
                 'process_time_ms' => $request->input('process_time_ms', 0),
             ]);
+
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json(['success' => false], 500);
@@ -227,7 +277,7 @@ Route::middleware(['auth'])->group(function () {
                     'hasMatch' => count($positions) > 0,
                     'algorithm' => $algorithm,
                     'process_time_ms' => $processTime,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([

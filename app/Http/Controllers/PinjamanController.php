@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pinjaman;
 use App\Models\Buku;
 use App\Models\Pengguna;
-use Illuminate\Http\Request;
+use App\Models\Pinjaman;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class PinjamanController extends Controller
 {
@@ -14,6 +14,7 @@ class PinjamanController extends Controller
     public function index()
     {
         $pinjaman = Pinjaman::with(['pengguna', 'buku'])->get();
+
         return response()->json($pinjaman);
     }
 
@@ -23,14 +24,14 @@ class PinjamanController extends Controller
         // Validasi input
         $request->validate([
             'pengguna_id' => 'required|exists:pengguna,id',
-            'buku_id'     => 'required|exists:buku,id',
+            'buku_id' => 'required|exists:buku,id',
         ]);
 
         $pengguna = Pengguna::findOrFail($request->pengguna_id);
-        $buku     = Buku::findOrFail($request->buku_id);
+        $buku = Buku::findOrFail($request->buku_id);
 
         // Validasi role (hanya pengguna/staff)
-        if (!in_array($pengguna->peran, ['pengguna', 'staff'])) {
+        if (! in_array($pengguna->peran, ['pengguna', 'staff'])) {
             return response()->json(['message' => 'Pengguna tidak berhak meminjam buku'], 403);
         }
 
@@ -41,9 +42,9 @@ class PinjamanController extends Controller
 
         // Cek apakah user sudah meminjam buku ini dan belum dikembalikan
         $existing = Pinjaman::where('pengguna_id', $pengguna->id)
-                            ->where('buku_id', $buku->id)
-                            ->where('status', 'sedang_dipinjam')
-                            ->first();
+            ->where('buku_id', $buku->id)
+            ->where('status', 'sedang_dipinjam')
+            ->first();
         if ($existing) {
             return response()->json(['message' => 'Pengguna sudah meminjam buku ini'], 400);
         }
@@ -51,8 +52,8 @@ class PinjamanController extends Controller
         // Buat peminjaman
         $pinjaman = Pinjaman::create([
             'pengguna_id' => $pengguna->id,
-            'buku_id'     => $buku->id,
-            'status'      => 'sedang_dipinjam',
+            'buku_id' => $buku->id,
+            'status' => 'sedang_dipinjam',
             'tanggal_pinjam' => Carbon::now()->toDateString(),
             'tanggal_jatuh_tempo' => Carbon::now()->addDays(7)->toDateString(),
             'denda' => 0,
@@ -63,7 +64,7 @@ class PinjamanController extends Controller
 
         return response()->json([
             'message' => 'Buku berhasil dipinjam',
-            'data' => $pinjaman
+            'data' => $pinjaman,
         ], 201);
     }
 
@@ -73,7 +74,7 @@ class PinjamanController extends Controller
         $pinjaman = Pinjaman::findOrFail($id);
 
         $request->validate([
-            'status' => 'required|in:wishlist,sedang_dipinjam,dikembalikan'
+            'status' => 'required|in:wishlist,sedang_dipinjam,dikembalikan',
         ]);
 
         $oldStatus = $pinjaman->status;
@@ -88,7 +89,7 @@ class PinjamanController extends Controller
 
         return response()->json([
             'message' => 'Status peminjaman berhasil diperbarui',
-            'data' => $pinjaman
+            'data' => $pinjaman,
         ]);
     }
 

@@ -3,11 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\Book;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Pengguna extends Authenticatable
 {
@@ -45,7 +44,7 @@ class Pengguna extends Authenticatable
     public function setKataSandiAttribute($value)
     {
         // Hanya hash jika value belum ter-hash (panjang hash bcrypt biasanya 60 karakter)
-        if (!empty($value) && strlen($value) < 60) {
+        if (! empty($value) && strlen($value) < 60) {
             $this->attributes['kata_sandi'] = bcrypt($value);
         } else {
             $this->attributes['kata_sandi'] = $value;
@@ -57,10 +56,12 @@ class Pengguna extends Authenticatable
     {
         return $this->hasMany(Pinjaman::class, 'pengguna_id');
     }
+
     public function favorites(): BelongsToMany
-{
-    return $this->belongsToMany(\App\Models\Buku::class, 'favorites', 'user_id', 'book_id');
-}
+    {
+        return $this->belongsToMany(\App\Models\Buku::class, 'favorites', 'user_id', 'book_id');
+    }
+
     // HELPER ROLE
     public function isAdmin()
     {

@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Buku;
 use App\Models\Pengguna;
 use App\Models\Pinjaman;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
@@ -42,7 +42,6 @@ class AdminController extends Controller
         return view('admin', compact('totalBuku', 'totalUser', 'totalPinjamanAktif', 'chartData', 'activities', 'recentLoans'));
     }
 
-
     public function getStats(Request $request)
     {
         return response()->json([
@@ -52,11 +51,10 @@ class AdminController extends Controller
         ]);
     }
 
-
     public function getChartData()
     {
-        $months = ['Januari','Februari','Maret','April','Mei','Juni','Juli',
-                   'Agustus','September','Oktober','November','Desember'];
+        $months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
+            'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
         $currentYear = Carbon::now()->year;
         $data = [];
@@ -85,45 +83,43 @@ class AdminController extends Controller
         return $data;
     }
 
-
     public function getActivities(Request $request)
     {
         return response()->json(
             Pinjaman::with(['pengguna', 'buku'])
-            ->orderBy('created_at', 'desc')
-            ->limit($request->get('limit', 10))
-            ->get()
-            ->map(function ($p) {
-                return [
-                    'id' => $p->id,
-                    'name' => $p->pengguna->nama,
-                    'action' => $p->status === 'sedang_dipinjam' ? 'Meminjam Buku' : 'Mengembalikan Buku',
-                    'book' => $p->buku->judul,
-                    'avatar' => 'avatar-1.png',
-                    'note' => '',
-                    'created_at' => $p->created_at->format('Y-m-d H:i:s'),
-                ];
-            })
+                ->orderBy('created_at', 'desc')
+                ->limit($request->get('limit', 10))
+                ->get()
+                ->map(function ($p) {
+                    return [
+                        'id' => $p->id,
+                        'name' => $p->pengguna->nama,
+                        'action' => $p->status === 'sedang_dipinjam' ? 'Meminjam Buku' : 'Mengembalikan Buku',
+                        'book' => $p->buku->judul,
+                        'avatar' => 'avatar-1.png',
+                        'note' => '',
+                        'created_at' => $p->created_at->format('Y-m-d H:i:s'),
+                    ];
+                })
         );
     }
-
 
     public function getRecentLoans(Request $request)
     {
         return response()->json(
             Pinjaman::with(['pengguna', 'buku'])
-            ->orderBy('tanggal_pinjam', 'desc')
-            ->limit($request->get('limit', 10))
-            ->get()
-            ->map(function ($p) {
-                return [
-                    'id' => $p->id,
-                    'judul_buku' => $p->buku->judul,
-                    'peminjam' => $p->pengguna->nama,
-                    'tanggal_pinjam' => $p->tanggal_pinjam ? $p->tanggal_pinjam->format('d M Y') : '-',
-                    'status' => $p->status,
-                ];
-            })
+                ->orderBy('tanggal_pinjam', 'desc')
+                ->limit($request->get('limit', 10))
+                ->get()
+                ->map(function ($p) {
+                    return [
+                        'id' => $p->id,
+                        'judul_buku' => $p->buku->judul,
+                        'peminjam' => $p->pengguna->nama,
+                        'tanggal_pinjam' => $p->tanggal_pinjam ? $p->tanggal_pinjam->format('d M Y') : '-',
+                        'status' => $p->status,
+                    ];
+                })
         );
     }
 }

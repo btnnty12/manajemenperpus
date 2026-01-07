@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pesan;
 use App\Models\Notifikasi;
 use App\Models\Pengguna;
+use App\Models\Pesan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,13 +13,13 @@ class PesanController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['data' => [], 'unread_count' => 0]);
         }
 
         $query = Pesan::where(function ($q) use ($user) {
             $q->where('penerima_id', $user->id)
-              ->orWhere('pengirim_id', $user->id);
+                ->orWhere('pengirim_id', $user->id);
         })->orderBy('created_at', 'desc');
 
         if ($request->has('only_inbox') && $request->boolean('only_inbox')) {
@@ -39,11 +39,11 @@ class PesanController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        if (!$user->isAdmin() && !$user->isStaff()) {
+        if (! $user->isAdmin() && ! $user->isStaff()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -53,7 +53,7 @@ class PesanController extends Controller
         ]);
 
         $penerima = Pengguna::find($validated['penerima_id']);
-        if (!$penerima || !$penerima->isPengguna()) {
+        if (! $penerima || ! $penerima->isPengguna()) {
             return response()->json(['message' => 'Penerima harus berperan sebagai pengguna'], 422);
         }
 
@@ -66,7 +66,7 @@ class PesanController extends Controller
         Notifikasi::create([
             'pengguna_id' => $validated['penerima_id'],
             'judul' => 'Pesan Baru',
-            'pesan' => 'Anda menerima pesan baru dari ' . $user->nama,
+            'pesan' => 'Anda menerima pesan baru dari '.$user->nama,
             'tipe' => 'info',
             'link' => '/notifikasi',
         ]);
@@ -82,6 +82,7 @@ class PesanController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
         $msg->update(['dibaca' => true]);
+
         return response()->json(['message' => 'OK']);
     }
 
@@ -98,7 +99,7 @@ class PesanController extends Controller
         Notifikasi::create([
             'pengguna_id' => $msg->pengirim_id,
             'judul' => 'Pesan Dikonfirmasi',
-            'pesan' => 'Pesan Anda telah dikonfirmasi oleh ' . Auth::user()->nama,
+            'pesan' => 'Pesan Anda telah dikonfirmasi oleh '.Auth::user()->nama,
             'tipe' => 'success',
             'link' => '/notifikasi',
         ]);
@@ -131,7 +132,7 @@ class PesanController extends Controller
         Notifikasi::create([
             'pengguna_id' => $targetId,
             'judul' => 'Balasan Pesan',
-            'pesan' => 'Anda menerima balasan dari ' . $user->nama,
+            'pesan' => 'Anda menerima balasan dari '.$user->nama,
             'tipe' => 'info',
             'link' => '/notifikasi',
         ]);

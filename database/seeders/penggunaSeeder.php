@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -36,12 +35,12 @@ class penggunaSeeder extends Seeder
     {
         $check = DB::table('pengguna')->where('email', $email)->exists();
 
-        if (!$check) {
+        if (! $check) {
             DB::table('pengguna')->insert([
-                'nama'       => $nama,
-                'email'      => $email,
+                'nama' => $nama,
+                'email' => $email,
                 'kata_sandi' => Hash::make($password),
-                'peran'      => $peran,
+                'peran' => $peran,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -49,9 +48,9 @@ class penggunaSeeder extends Seeder
             DB::table('pengguna')
                 ->where('email', $email)
                 ->update([
-                    'nama'       => $nama,
+                    'nama' => $nama,
                     'kata_sandi' => Hash::make($password),
-                    'peran'      => $peran,
+                    'peran' => $peran,
                     'updated_at' => now(),
                 ]);
         }
