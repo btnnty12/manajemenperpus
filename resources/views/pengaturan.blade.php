@@ -59,8 +59,8 @@
 
         <div class="flex items-center space-x-2">
             <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
-                @if(Auth::check() && Auth::user()->profile_photo)
-                    <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" class="w-full h-full object-cover">
+                @if(Auth::check() && Auth::user()->foto)
+                    <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}'">
                 @else
                     {{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}
                 @endif
@@ -101,7 +101,16 @@
 
                 <!-- FOTO PROFIL -->
                 <div class="flex flex-col items-center text-center mb-10">
-                    <img src="{{ (Auth::check() && Auth::user()->profile_photo) ? asset('storage/' . Auth::user()->profile_photo) : asset('icons/profile.png') }}" id="profilePreview" class="w-32 h-32 rounded-full shadow mb-4">
+                    @if(Auth::check() && Auth::user()->foto)
+                        <img src="{{ asset('storage/' . Auth::user()->foto) }}" id="profilePreview" class="w-32 h-32 rounded-full shadow mb-4 object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div id="profilePreviewFallback" class="w-32 h-32 rounded-full shadow mb-4 bg-gray-300 flex items-center justify-center text-gray-600 font-bold text-2xl" style="display: none;">
+                            {{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}
+                        </div>
+                    @else
+                        <div id="profilePreview" class="w-32 h-32 rounded-full shadow mb-4 bg-gray-300 flex items-center justify-center text-gray-600 font-bold text-2xl">
+                            {{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}
+                        </div>
+                    @endif
                     @if(Auth::check())
                     <label class="mt-2 cursor-pointer bg-[#A63A2D] hover:bg-[#923223] text-white px-4 py-2 rounded">
                         Ubah Foto

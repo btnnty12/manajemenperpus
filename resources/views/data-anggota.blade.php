@@ -59,95 +59,92 @@
         <x-icon name="logout" class="w-7 h-7 text-white" />
     </a>
 </div>
-</div>
 
-        <!-- MAIN CONTENT -->
-        <div class="flex-1 py-6 px-10">
+<!-- MAIN CONTENT -->
+<div class="flex-1 py-6 px-10 min-h-screen">
 
-<!-- TOPBAR -->
-<div class="flex justify-end items-center w-full py-4 px-10 text-white space-x-6">
+    <!-- TOPBAR -->
+    <div class="flex justify-end items-center w-full py-4 px-10 text-white space-x-6">
+        <!-- Divider kiri -->
+        <div class="border-l border-white h-6"></div>
 
-    <!-- Divider kiri -->
-    <div class="border-l border-white h-6"></div>
+        <!-- Icon notif -->
+        <button id="notifBtn" onclick="toggleNotifPopup()" class="relative">
+            <x-icon name="notification" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
+            <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+        </button>
 
-    <!-- Icon notif -->
-    <button id="notifBtn" onclick="toggleNotifPopup()" class="relative">
-        <x-icon name="notification" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
-        <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
-    </button>
+        <!-- Divider kanan -->
+        <div class="border-l border-white h-6"></div>
 
-    <!-- Divider kanan -->
-    <div class="border-l border-white h-6"></div>
-
-    <!-- Profile -->
-    <div class="flex items-center space-x-2">
-        <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold">
-            FA
+        <!-- Profile -->
+        <div class="flex items-center space-x-2">
+            <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
+                @if(Auth::check() && Auth::user()->foto)
+                    <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}'">
+                @else
+                    {{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}
+                @endif
+            </div>
+            <span class="text-black font-medium">{{ Auth::user()->nama ?? 'Admin' }}</span>
         </div>
-            <span class="text-black font-medium">Fayza Azzahra</span>
     </div>
 
-</div>
+    <!-- GARIS PEMBATAS PANJANG -->
+    <div class="w-full border-b-2 border-white mb-6"></div>
 
-<!-- GARIS PEMBATAS PANJANG -->
-<div class="w-full border-b-2 border-white mb-6"></div>
+    <!-- TITLE -->
+    <h1 class="text-3xl font-bold text-[#7c1d0f] mb-1">Data Anggota</h1>
+    <p class="text-sm text-gray-700 mb-6">Pantau dan atur data anggota perpustakaan untuk memastikan informasi terbaru.</p>
 
-            <!-- TITLE -->
-            <h1 class="text-3xl font-bold text-[#7c1d0f] mb-1">Data Anggota !</h1>
-            <p class="text-sm text-gray-700 mb-6">Pantau dan atur data anggota perpustakaan untuk memastikan informasi terbaru.</p>
+    <!-- STATISTIC CARDS -->
+    <div class="grid grid-cols-4 gap-6 mb-8">
+        <div class="bg-[#b94a36] text-white rounded-lg p-6 text-center">
+            <h2 class="text-4xl font-bold">{{ $totalAnggota ?? 0 }}</h2>
+            <p>Total Anggota</p>
+        </div>
 
-            <!-- STATISTIC CARDS -->
-            <div class="grid grid-cols-4 gap-6 mb-8">
+        <div class="bg-[#b94a36] text-white rounded-lg p-6 text-center">
+            <h2 class="text-4xl font-bold">{{ $aktif ?? 0 }}</h2>
+            <p>Anggota Aktif</p>
+        </div>
 
-                <div class="bg-[#b94a36] text-white rounded-lg p-6 text-center">
-                    <h2 class="text-4xl font-bold">155</h2>
-                    <p>Total Anggota</p>
-                </div>
+        <div class="bg-[#b94a36] text-white rounded-lg p-6 text-center">
+            <h2 class="text-4xl font-bold">{{ $nonaktif ?? 0 }}</h2>
+            <p>Anggota Nonaktif</p>
+        </div>
 
-                <div class="bg-[#b94a36] text-white rounded-lg p-6 text-center">
-                    <h2 class="text-4xl font-bold">100</h2>
-                    <p>Anggota Aktif</p>
-                </div>
+        <div class="bg-[#b94a36] text-white rounded-lg p-6 text-center">
+            <h2 class="text-4xl font-bold">{{ $anggotaBaru ?? 0 }}</h2>
+            <p>Anggota Baru Bulan Ini</p>
+        </div>
+    </div>
 
-                <div class="bg-[#b94a36] text-white rounded-lg p-6 text-center">
-                    <h2 class="text-4xl font-bold">45</h2>
-                    <p>Anggota Nonaktif</p>
-                </div>
+    <!-- SEARCH + FILTER -->
+    <div class="grid grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-lg px-4 py-2 flex items-center">
+            <x-icon name="search" class="w-5 h-5 mr-3 text-gray-500" />
+            <input type="text" id="searchInputAnggota" placeholder="Cari nama atau email..." class="w-full outline-none">
+        </div>
 
-                <div class="bg-[#b94a36] text-white rounded-lg p-6 text-center">
-                    <h2 class="text-4xl font-bold">10</h2>
-                    <p>Anggota Baru Bulan Ini</p>
-                </div>
+        <div class="bg-white rounded-lg px-4 py-2 flex items-center">
+            <span class="text-gray-500">Status</span>
+        </div>
 
-            </div>
+        <div class="bg-white rounded-lg px-4 py-2 flex items-center">
+            <span class="text-gray-500">19/10/2025</span>
+        </div>
+    </div>
 
-            <!-- SEARCH + FILTER -->
-            <div class="grid grid-cols-3 gap-6 mb-6">
-                <div class="bg-white rounded-lg px-4 py-2 flex items-center">
-                    <x-icon name="search" class="w-5 h-5 mr-3 text-gray-500" />
-                    <input type="text" placeholder="Search" class="w-full outline-none">
-                </div>
-
-                <div class="bg-white rounded-lg px-4 py-2 flex items-center">
-                    <span class="text-gray-500">Status</span>
-                </div>
-
-                <div class="bg-white rounded-lg px-4 py-2 flex items-center">
-                    <span class="text-gray-500">19/10/2025</span>
-                </div>
-            </div>
-
-           <!-- TABEL -->
-            <div class="bg-white rounded-xl shadow overflow-hidden">
-
-                <table class="w-full text-left">
+    <!-- TABEL -->
+    <div class="bg-white rounded-xl shadow overflow-hidden">
+        <table class="w-full text-left">
                     <thead class="bg-[#b94a36] text-white">
                         <tr>
                             <th class="px-4 py-3">ID Anggota</th>
                             <th class="px-4 py-3">Tanggal</th>
                             <th class="px-4 py-3">Nama</th>
                             <th class="px-4 py-3">Email</th>
-                            <th class="px-4 py-3">Judul Buku</th>
                             <th class="px-4 py-3">Status</th>
                             <th class="px-4 py-3">Denda</th>
                             <th class="px-4 py-3">Opsi</th>
@@ -155,125 +152,69 @@
                     </thead>
 
                     <tbody id="anggotaTableBody">
-                        <tr class="border-b anggota-row">
-                            <td class="px-4 py-3">AGT001</td>
-                            <td class="px-4 py-3">19/10/2025</td>
-                            <td class="px-4 py-3">Siti Nurfadila</td>
-                            <td class="px-4 py-3">siti@gmail.com</td>
-                            <td class="px-4 py-3">Pemrograman Web Dasar</td>
-                            <td class="px-4 py-3 text-green-600 font-semibold">Aktif</td>
-                            <td class="px-4 py-3">Rp 0</td>
-                            <td class="px-4 py-3 flex gap-3">
-                                <img src="{{ asset('images/edit.png') }}" class="w-5">
-                                <img src="{{ asset('images/delete.png') }}" class="w-5">
+                        @forelse($anggota ?? [] as $item)
+                        @php
+                            // Hitung total denda dari pinjaman yang belum dikembalikan atau telat
+                            $totalDenda = \App\Models\Pinjaman::where('pengguna_id', $item->id)
+                                ->where(function($q) {
+                                    $q->where('status', 'sedang_dipinjam')
+                                      ->orWhere('status', 'dikembalikan');
+                                })
+                                ->sum('denda');
+                            
+                            // Cek apakah ada pinjaman aktif
+                            $hasActiveLoan = \App\Models\Pinjaman::where('pengguna_id', $item->id)
+                                ->where('status', 'sedang_dipinjam')
+                                ->exists();
+                            
+                            // Status: Aktif jika ada pinjaman aktif, atau jika pernah pinjam buku
+                            $hasLoanHistory = \App\Models\Pinjaman::where('pengguna_id', $item->id)->exists();
+                            $status = $hasActiveLoan ? 'Aktif' : ($hasLoanHistory ? 'Aktif' : 'Aktif');
+                        @endphp
+                        <tr class="border-b anggota-row hover:bg-gray-50">
+                            <td class="px-4 py-3 font-semibold">AG-{{ str_pad($item->id, 3, '0', STR_PAD_LEFT) }}</td>
+                            <td class="px-4 py-3">{{ $item->created_at->format('d/m/Y') }}</td>
+                            <td class="px-4 py-3">{{ $item->nama }}</td>
+                            <td class="px-4 py-3">{{ $item->email }}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $hasActiveLoan ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
+                                    {{ $status }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 font-semibold {{ $totalDenda > 0 ? 'text-red-600' : 'text-gray-600' }}">
+                                Rp {{ number_format($totalDenda, 0, ',', '.') }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex gap-2">
+                                    <button onclick="editAnggota({{ $item->id }})" class="p-1 hover:bg-gray-200 rounded cursor-pointer" title="Edit">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                    <button onclick="deleteAnggota({{ $item->id }})" class="p-1 hover:bg-gray-200 rounded cursor-pointer" title="Hapus">
+                                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
-
-                        <tr class="border-b anggota-row">
-                            <td class="px-4 py-3">AGT002</td>
-                            <td class="px-4 py-3">20/10/2025</td>
-                            <td class="px-4 py-3">Rangga Saputra</td>
-                            <td class="px-4 py-3">rangga@gmail.com</td>
-                            <td class="px-4 py-3">Matematika Ekonomi</td>
-                            <td class="px-4 py-3 text-red-600 font-semibold">Nonaktif</td>
-                            <td class="px-4 py-3">Rp 15.000</td>
-                            <td class="px-4 py-3 flex gap-3">
-                                <img src="{{ asset('images/edit.png') }}" class="w-5">
-                                <img src="{{ asset('images/delete.png') }}" class="w-5">
-                            </td>
+                        @empty
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-gray-500">Tidak ada data anggota</td>
                         </tr>
-
-                        <tr class="border-b anggota-row">
-                            <td class="px-4 py-3">AGT003</td>
-                            <td class="px-4 py-3">21/10/2025</td>
-                            <td class="px-4 py-3">Budi Hartanto</td>
-                            <td class="px-4 py-3">budi@gmail.com</td>
-                            <td class="px-4 py-3">Fisika Dasar</td>
-                            <td class="px-4 py-3 text-yellow-600 font-semibold">Menunggu Konfirmasi</td>
-                            <td class="px-4 py-3">Rp 0</td>
-                            <td class="px-4 py-3 flex gap-3">
-                                <img src="{{ asset('images/edit.png') }}" class="w-5">
-                                <img src="{{ asset('images/delete.png') }}" class="w-5">
-                            </td>
-                        </tr>
-
-                        <tr class="border-b anggota-row">
-                            <td class="px-4 py-3">AGT004</td>
-                            <td class="px-4 py-3">22/10/2025</td>
-                            <td class="px-4 py-3">Dewi Kartika</td>
-                            <td class="px-4 py-3">dewi@gmail.com</td>
-                            <td class="px-4 py-3">Sistem Informasi</td>
-                            <td class="px-4 py-3 text-green-600 font-semibold">Aktif</td>
-                            <td class="px-4 py-3">Rp 0</td>
-                            <td class="px-4 py-3 flex gap-3">
-                                <img src="{{ asset('images/edit.png') }}" class="w-5">
-                                <img src="{{ asset('images/delete.png') }}" class="w-5">
-                            </td>
-                        </tr>
-
-                        <tr class="border-b anggota-row">
-                            <td class="px-4 py-3">AGT005</td>
-                            <td class="px-4 py-3">23/10/2025</td>
-                            <td class="px-4 py-3">Novi Amelia</td>
-                            <td class="px-4 py-3">novi@gmail.com</td>
-                            <td class="px-4 py-3">Analisis Data</td>
-                            <td class="px-4 py-3 text-red-600 font-semibold">Nonaktif</td>
-                            <td class="px-4 py-3">Rp 8.000</td>
-                            <td class="px-4 py-3 flex gap-3">
-                                <img src="{{ asset('images/edit.png') }}" class="w-5">
-                                <img src="{{ asset('images/delete.png') }}" class="w-5">
-                            </td>
-                        </tr>
-
-                        <tr class="border-b anggota-row">
-                            <td class="px-4 py-3">AGT006</td>
-                            <td class="px-4 py-3">24/10/2025</td>
-                            <td class="px-4 py-3">Andi Pratama</td>
-                            <td class="px-4 py-3">andi@gmail.com</td>
-                            <td class="px-4 py-3">Statistik Dasar</td>
-                            <td class="px-4 py-3 text-green-600 font-semibold">Aktif</td>
-                            <td class="px-4 py-3">Rp 0</td>
-                            <td class="px-4 py-3 flex gap-3">
-                                <img src="{{ asset('images/edit.png') }}" class="w-5">
-                                <img src="{{ asset('images/delete.png') }}" class="w-5">
-                            </td>
-                        </tr>
-
-                        <tr class="border-b anggota-row">
-                            <td class="px-4 py-3">AGT007</td>
-                            <td class="px-4 py-3">25/10/2025</td>
-                            <td class="px-4 py-3">Lisa Marlina</td>
-                            <td class="px-4 py-3">lisa@gmail.com</td>
-                            <td class="px-4 py-3">Pengantar Bisnis</td>
-                            <td class="px-4 py-3 text-yellow-600 font-semibold">Menunggu Konfirmasi</td>
-                            <td class="px-4 py-3">Rp 5.000</td>
-                            <td class="px-4 py-3 flex gap-3">
-                                <img src="{{ asset('images/edit.png') }}" class="w-5">
-                                <img src="{{ asset('images/delete.png') }}" class="w-5">
-                            </td>
-                        </tr>
-
-                        <tr class="anggota-row">
-                            <td class="px-4 py-3">AGT008</td>
-                            <td class="px-4 py-3">26/10/2025</td>
-                            <td class="px-4 py-3">Syahrul Ramadhan</td>
-                            <td class="px-4 py-3">syahrul@gmail.com</td>
-                            <td class="px-4 py-3">Kalkulus 1</td>
-                            <td class="px-4 py-3 text-green-600 font-semibold">Aktif</td>
-                            <td class="px-4 py-3">Rp 0</td>
-                            <td class="px-4 py-3 flex gap-3">
-                                <img src="{{ asset('images/edit.png') }}" class="w-5">
-                                <img src="{{ asset('images/delete.png') }}" class="w-5">
-                            </td>
-                        </tr>
+                        @endforelse
                     </tbody>
-                </table>
-            </div>
+        </table>
+    </div>
 
-            <!-- PAGINATION -->
-            <div id="paginationContainer" class="flex items-center justify-center space-x-4 mt-6">
-                <!-- Pagination akan di-generate oleh JavaScript -->
-            </div>
+    <!-- PAGINATION -->
+    <div class="flex items-center justify-center space-x-4 mt-6">
+        @if(isset($anggota) && method_exists($anggota, 'links'))
+            {{ $anggota->links() }}
+        @endif
+    </div>
+</div>
 
 <script>
 document.querySelectorAll('.menu-item').forEach((item, index) => {
@@ -521,10 +462,10 @@ function searchWithAlgorithm(text, pattern, algorithm) {
 }
 
 // --- SEARCH, STATUS, TANGGAL FILTER ---
-const searchInput = document.querySelector('input[placeholder="Search"]');
+const searchInput = document.getElementById('searchInputAnggota') || document.querySelector('input[placeholder*="Cari"]');
 const statusFilter = document.querySelectorAll('.grid-cols-3 div:nth-child(2)');
 const dateFilter = document.querySelectorAll('.grid-cols-3 div:nth-child(3)');
-const tableRows = document.querySelectorAll('tbody tr');
+const tableRows = document.querySelectorAll('tbody tr.anggota-row');
 
 // Buat dropdown status dan input tanggal
 statusFilter[0].innerHTML = `
@@ -567,7 +508,7 @@ function executeSearch() {
     tableRows.forEach(row => {
         const name = row.cells[2].textContent.toLowerCase(); // kolom Nama
         const email = row.cells[3].textContent.toLowerCase(); // kolom Email
-        const status = row.cells[5].textContent; // kolom Status
+        const status = row.cells[4].textContent.trim(); // kolom Status
         const tanggalCell = row.cells[1].textContent; // kolom Tanggal
         const tanggal = new Date(tanggalCell.split('/').reverse().join('-')).toISOString().split('T')[0]; // convert ke yyyy-mm-dd
 
@@ -578,7 +519,7 @@ function executeSearch() {
             matchesSearch = nameMatches.length > 0 || emailMatches.length > 0;
         }
 
-        const matchesStatus = statusValue === "" || status === statusValue;
+        const matchesStatus = statusValue === "" || status.includes(statusValue);
         const matchesDate = dateValue === "" || tanggal === dateValue;
 
         row.style.display = (matchesSearch && matchesStatus && matchesDate) ? "" : "none";
@@ -608,15 +549,14 @@ document.querySelectorAll('tbody tr').forEach((row) => {
     // EVENT DETAIL
     opsiCell.querySelector('img:nth-child(1)').addEventListener('click', () => {
         const data = {
-            id: row.cells[0].textContent,
-            tanggal: row.cells[1].textContent,
-            nama: row.cells[2].textContent,
-            email: row.cells[3].textContent,
-            buku: row.cells[4].textContent,
-            status: row.cells[5].textContent,
-            denda: row.cells[6].textContent
+            id: row.cells[0].textContent.trim(),
+            tanggal: row.cells[1].textContent.trim(),
+            nama: row.cells[2].textContent.trim(),
+            email: row.cells[3].textContent.trim(),
+            status: row.cells[4].textContent.trim(),
+            denda: row.cells[5].textContent.trim()
         };
-        alert(`Detail Anggota:\n\nID: ${data.id}\nTanggal: ${data.tanggal}\nNama: ${data.nama}\nEmail: ${data.email}\nJudul Buku: ${data.buku}\nStatus: ${data.status}\nDenda: ${data.denda}`);
+        alert(`Detail Anggota:\n\nID: ${data.id}\nTanggal Daftar: ${data.tanggal}\nNama: ${data.nama}\nEmail: ${data.email}\nStatus: ${data.status}\nTotal Denda: ${data.denda}`);
     });
 
     // EVENT DELETE
@@ -769,6 +709,8 @@ document.getElementById('notifPopup').addEventListener('click', function(e) {
     </div>
 </div>
 
+</div>
+<!-- End flex container -->
 
 </body>
 </html>

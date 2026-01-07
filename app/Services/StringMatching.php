@@ -6,6 +6,7 @@ class StringMatching
 {
     // Cache untuk LPS dan Bad Character Table
     private static array $lpsCache = [];
+
     private static array $badCharCache = [];
 
     public static function matchPositions(string $text, string $pattern, string $algo = 'bm', bool $caseInsensitive = false): array
@@ -13,7 +14,7 @@ class StringMatching
         if ($pattern === '') {
             return [];
         }
-        
+
         // Early return jika pattern lebih panjang dari text
         if (strlen($pattern) > strlen($text)) {
             return [];
@@ -40,7 +41,7 @@ class StringMatching
         $n = strlen($text);
         $m = strlen($pattern);
         $res = [];
-        
+
         if ($m > $n) {
             return $res;
         }
@@ -53,30 +54,31 @@ class StringMatching
                     $res[] = $i;
                 }
             }
+
             return $res;
         }
 
         // Untuk pattern lebih panjang, gunakan karakter-by-karakter dengan early exit
         $lastChar = $pattern[$m - 1];
         $lastPos = $n - $m;
-        
+
         for ($i = 0; $i <= $lastPos; $i++) {
             // Quick check: karakter terakhir harus match dulu
             if ($text[$i + $m - 1] !== $lastChar) {
                 continue;
             }
-            
+
             // Jika karakter terakhir match, baru cek seluruh pattern
             $j = 0;
             while ($j < $m - 1 && $text[$i + $j] === $pattern[$j]) {
                 $j++;
             }
-            
+
             if ($j === $m - 1) {
                 $res[] = $i;
             }
         }
-        
+
         return $res;
     }
 
@@ -88,21 +90,21 @@ class StringMatching
         $n = strlen($text);
         $m = strlen($pattern);
         $res = [];
-        
+
         if ($m === 0 || $m > $n) {
             return $res;
         }
 
         // Gunakan cache untuk LPS
         $cacheKey = $pattern;
-        if (!isset(self::$lpsCache[$cacheKey])) {
+        if (! isset(self::$lpsCache[$cacheKey])) {
             self::$lpsCache[$cacheKey] = self::kmpLps($pattern);
         }
         $lps = self::$lpsCache[$cacheKey];
 
         $i = 0;
         $j = 0;
-        
+
         // Optimasi: unroll loop untuk pattern pendek
         if ($m <= 8) {
             while ($i < $n) {
@@ -140,7 +142,7 @@ class StringMatching
                 }
             }
         }
-        
+
         return $res;
     }
 
@@ -151,14 +153,14 @@ class StringMatching
     {
         $m = strlen($pattern);
         $lps = array_fill(0, $m, 0);
-        
+
         if ($m <= 1) {
             return $lps;
         }
 
         $len = 0;
         $i = 1;
-        
+
         while ($i < $m) {
             if ($pattern[$i] === $pattern[$len]) {
                 $len++;
@@ -174,7 +176,7 @@ class StringMatching
                 }
             }
         }
-        
+
         return $lps;
     }
 
@@ -186,33 +188,33 @@ class StringMatching
         $n = strlen($text);
         $m = strlen($pattern);
         $res = [];
-        
+
         if ($m === 0 || $m > $n) {
             return $res;
         }
 
         // Gunakan cache untuk bad character table
         $cacheKey = $pattern;
-        if (!isset(self::$badCharCache[$cacheKey])) {
+        if (! isset(self::$badCharCache[$cacheKey])) {
             self::$badCharCache[$cacheKey] = self::buildBadCharTable($pattern);
         }
         $bad = self::$badCharCache[$cacheKey];
 
         $shift = 0;
         $lastMatch = -1; // Untuk Galil's optimization
-        
+
         while ($shift <= $n - $m) {
             $j = $m - 1;
-            
+
             // Match dari kanan ke kiri
             while ($j >= 0 && $pattern[$j] === $text[$shift + $j]) {
                 $j--;
             }
-            
+
             if ($j < 0) {
                 // Match found
                 $res[] = $shift;
-                
+
                 // Galil's optimization: skip karakter yang sudah match
                 if ($shift + $m < $n) {
                     $nextChar = ord($text[$shift + $m]);
@@ -224,12 +226,12 @@ class StringMatching
                 // Bad character rule dengan optimasi
                 $mismatchChar = ord($text[$shift + $j]);
                 $bc = $bad[$mismatchChar] ?? -1;
-                
+
                 // Shift berdasarkan bad character rule
                 $shift += max(1, $j - $bc);
             }
         }
-        
+
         return $res;
     }
 
@@ -240,12 +242,12 @@ class StringMatching
     {
         $m = strlen($pattern);
         $bad = array_fill(0, 256, -1);
-        
+
         // Hanya set karakter yang ada di pattern
         for ($i = 0; $i < $m; $i++) {
             $bad[ord($pattern[$i])] = $i;
         }
-        
+
         return $bad;
     }
 
@@ -258,4 +260,3 @@ class StringMatching
         self::$badCharCache = [];
     }
 }
-

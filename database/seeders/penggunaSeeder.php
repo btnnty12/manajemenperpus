@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Pengguna;
 use Illuminate\Support\Facades\Hash;
@@ -38,10 +37,10 @@ class penggunaSeeder extends Seeder
         Pengguna::updateOrCreate(
             ['email' => $email], // Kondisi pencarian
             [
-                'nama'       => $nama,
-                'email'      => $email,
+                'nama' => $nama,
+                'email' => $email,
                 'kata_sandi' => $password, // Model akan otomatis hash via mutator
-                'peran'      => $peran,
+                'peran' => $peran,
             ]
         );
     }

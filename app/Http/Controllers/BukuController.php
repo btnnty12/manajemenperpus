@@ -17,19 +17,19 @@ class BukuController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'judul'        => 'required|string|max:255',
-            'penulis'      => 'required|string|max:255',
-            'genre'        => 'nullable|string|max:100',
-            'deskripsi'    => 'nullable|string',
+            'judul' => 'required|string|max:255',
+            'penulis' => 'required|string|max:255',
+            'genre' => 'nullable|string|max:100',
+            'deskripsi' => 'nullable|string',
             'tahun_terbit' => 'required|integer|min:1500|max:2099',
-            'stok'         => 'required|integer|min:0'
+            'stok' => 'required|integer|min:0',
         ]);
 
         $buku = Buku::create($validated);
 
         return response()->json([
             'message' => 'Buku berhasil ditambahkan',
-            'data' => $buku
+            'data' => $buku,
         ], 201);
     }
 
@@ -37,6 +37,7 @@ class BukuController extends Controller
     public function show($id)
     {
         $buku = Buku::findOrFail($id);
+
         return response()->json($buku);
     }
 
@@ -46,19 +47,19 @@ class BukuController extends Controller
         $buku = Buku::findOrFail($id);
 
         $validated = $request->validate([
-            'judul'        => 'sometimes|required|string|max:255',
-            'penulis'      => 'sometimes|required|string|max:255',
-            'genre'        => 'nullable|string|max:100',
-            'deskripsi'    => 'nullable|string',
+            'judul' => 'sometimes|required|string|max:255',
+            'penulis' => 'sometimes|required|string|max:255',
+            'genre' => 'nullable|string|max:100',
+            'deskripsi' => 'nullable|string',
             'tahun_terbit' => 'sometimes|required|integer|min:1500|max:2099',
-            'stok'         => 'sometimes|required|integer|min:0'
+            'stok' => 'sometimes|required|integer|min:0',
         ]);
 
         $buku->update($validated);
 
         return response()->json([
             'message' => 'Buku berhasil diperbarui',
-            'data' => $buku
+            'data' => $buku,
         ]);
     }
 
@@ -70,7 +71,7 @@ class BukuController extends Controller
         // Cek apakah ada pinjaman aktif
         if ($buku->pinjaman()->where('status', 'sedang_dipinjam')->exists()) {
             return response()->json([
-                'message' => 'Buku tidak bisa dihapus karena masih dipinjam'
+                'message' => 'Buku tidak bisa dihapus karena masih dipinjam',
             ], 400);
         }
 

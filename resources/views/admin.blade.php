@@ -104,7 +104,9 @@
         <div class="relative">
             <div id="adminProfileBtn" class="flex items-center space-x-2 cursor-pointer">
                 <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
-                    @if(Auth::check() && Auth::user()->foto_url)
+                    @if(Auth::check() && Auth::user()->foto)
+                        <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}'">
+                    @elseif(Auth::check() && Auth::user()->foto_url)
                         <img src="{{ Auth::user()->foto_url }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}'">
                     @else
                         {{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}
@@ -138,7 +140,6 @@
               <div class="max-w-md">
                 <h1 class="text-5xl md:text-6xl font-extrabold leading-tight">Hi, Admin</h1>
                 <p class="mt-3 text-white/90">Pantau aktivitas peminjaman dan koleksi terbaru hari ini.</p>
-                <button class="mt-6 inline-block bg-white text-amber-700 font-semibold px-5 py-2 rounded-full shadow">Jelajahi Sekarang!</button>
               </div>
             </div>
 
@@ -226,7 +227,6 @@
             <div class="p-6 rounded-2xl shadow-lg bg-white h-full">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold">Aktivitas Pengguna Terbaru</h3>
-                <button class="text-sm text-amber-600 font-medium">Lihat Semua</button>
               </div>
 
               <div class="max-h-[520px] overflow-auto scrollbar-thin pr-2">

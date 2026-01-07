@@ -142,12 +142,7 @@
     <div class="w-full bg-[#C4431E] rounded-3xl text-white p-10 flex justify-between shadow-xl relative overflow-hidden">
         <div class="w-2/3">
             <h1 class="text-4xl font-bold">Hai, {{ $user->nama ?? 'Pengguna' }}</h1>
-            <p class="text-xl mt-2 mb-6">ada koleksi buku baru yang bisa kamu jelajahi hari ini!</p>
-
-           <a href="{{ route('search') }}" 
-   class="px-8 py-3 bg-white text-black font-bold rounded-full shadow hover:bg-gray-100 transition">
-    Jelajahi Sekarang
-</a>
+            <p class="text-xl mt-2 mb-6">Selamat datang di perpustakaan digital kami!</p>
         </div>
 
         <img src="images/book.png" 

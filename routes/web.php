@@ -50,7 +50,14 @@ Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->nam
 */
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/home', [\App\Http\Controllers\HomeController::class, 'index'])
+    Route::get('/home', function () {
+        $user = [
+            'nama' => session('nama', 'Pengguna'),
+            'email' => session('email'),
+            'role' => session('role'),
+        ];
+        return view('home', ['user' => $user]);
+    })
         ->middleware('role:pengguna,staff,admin')
         ->name('home');
 
@@ -58,29 +65,31 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:pengguna,staff,admin')
         ->name('notifikasi');
 
-    Route::get('/search', [\App\Http\Controllers\SearchPageController::class, 'index'])
+    Route::view('/search', 'search')
         ->middleware('role:pengguna,staff,admin')
         ->name('search');
 
-    Route::get('/pinjaman', [\App\Http\Controllers\UserPeminjamanController::class, 'index'])
-        ->middleware('role:pengguna')
-        ->name('pinjaman.index');
-
-    Route::get('/pengembalian-buku', [\App\Http\Controllers\PengembalianBukuController::class, 'index'])
+    Route::get('/pengembalian-buku', function () {
+        $user = [
+            'nama' => session('nama', 'Pengguna'),
+            'email' => session('email'),
+            'role' => session('role'),
+        ];
+        return view('index', ['user' => $user]);
+    })
         ->middleware('role:pengguna')
         ->name('pengembalian.index');
 
-    Route::get('/pengembalian/create', [\App\Http\Controllers\CreatePinjamanController::class, 'index'])
+    Route::get('/pengembalian/create', function () {
+        $user = [
+            'nama' => session('nama', 'Pengguna'),
+            'email' => session('email'),
+            'role' => session('role'),
+        ];
+        return view('create', ['user' => $user]);
+    })
         ->middleware('role:pengguna')
         ->name('pengembalian.create');
-    
-    Route::post('/pengembalian/create', [\App\Http\Controllers\CreatePinjamanController::class, 'store'])
-        ->middleware('role:pengguna')
-        ->name('pengembalian.store');
-    
-    Route::get('/api/search-buku', [\App\Http\Controllers\CreatePinjamanController::class, 'searchBuku'])
-        ->middleware('role:pengguna')
-        ->name('api.search-buku');
 
     Route::get('/create', fn () => redirect()->route('pengembalian.create'))
         ->middleware('role:pengguna');
@@ -124,23 +133,14 @@ Route::middleware(['auth'])->group(function () {
         ->name('pesan.confirm');
     Route::post('/api/pesan/{id}/reply', [\App\Http\Controllers\PesanController::class, 'reply'])
         ->name('pesan.reply');
-    Route::delete('/api/pesan/{id}', [\App\Http\Controllers\PesanController::class, 'destroy'])
-        ->name('pesan.destroy');
     Route::get('/api/pengguna', [\App\Http\Controllers\PenggunaController::class, 'index'])
         ->middleware('role:admin,staff')
         ->name('pengguna.index');
 
-    // Route aktivitas
-    Route::get('/aktivitas', [\App\Http\Controllers\AktivitasController::class, 'index'])
-        ->name('aktivitas.index');
-    Route::get('/api/aktivitas', [\App\Http\Controllers\AktivitasController::class, 'api'])
-        ->name('aktivitas.api');
-
-    // Route riwayat pencarian
-    Route::get('/api/riwayat-pencarian', [\App\Http\Controllers\RiwayatPencarianController::class, 'index'])
-        ->name('riwayat-pencarian.index');
-    Route::delete('/api/riwayat-pencarian', [\App\Http\Controllers\RiwayatPencarianController::class, 'clear'])
-        ->name('riwayat-pencarian.clear');
+    // Dashboard staff
+    Route::view('/staff', 'staff')
+        ->middleware('role:staff')
+        ->name('staff');
 });
 
 /*
@@ -154,42 +154,33 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
 // Halaman operasional ADMIN
 Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::view('/data-anggota', 'data-anggota')->name('data.anggota');
-    Route::view('/kelola-buku', 'kelola-buku')->name('kelola.buku');
+    Route::get('/data-anggota', [\App\Http\Controllers\DataAnggotaController::class, 'index'])->name('data.anggota');
+    Route::get('/kelola-buku', [\App\Http\Controllers\KelolaBukuController::class, 'index'])->name('kelola.buku');
+    Route::get('/kelola-buku/create', [\App\Http\Controllers\KelolaBukuController::class, 'create'])->name('kelola-buku.create');
+    Route::post('/kelola-buku', [\App\Http\Controllers\KelolaBukuController::class, 'store'])->name('kelola-buku.store');
+    Route::get('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'show'])->name('kelola-buku.show');
+    Route::put('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'update'])->name('kelola-buku.update');
+    Route::delete('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'destroy'])->name('kelola-buku.destroy');
     Route::post('/kelola-buku/import', [StaffBukuController::class, 'import'])->name('kelola-buku.import');
-    Route::get('/laporan-peminjaman', [\App\Http\Controllers\LaporanPeminjamanController::class, 'index'])->name('laporan-peminjaman');
+    Route::view('/laporan-peminjaman', 'laporan-peminjaman')->name('laporan-peminjaman');
     Route::view('/kelola-user', 'kelola-user')->name('kelola-user');
-    
-    // Route approve peminjaman
-    Route::post('/api/pinjaman/{id}/approve', [\App\Http\Controllers\ApprovePinjamanController::class, 'approve'])->name('pinjaman.approve');
-    Route::post('/api/pinjaman/{id}/reject', [\App\Http\Controllers\ApprovePinjamanController::class, 'reject'])->name('pinjaman.reject');
-    Route::post('/api/pinjaman/{id}/confirm-taken', [\App\Http\Controllers\ApprovePinjamanController::class, 'confirmTaken'])->name('pinjaman.confirm-taken');
-    Route::post('/api/pinjaman/{id}/return', [\App\Http\Controllers\PinjamanController::class, 'returnBook'])->name('pinjaman.return');
 });
 
 // Halaman operasional STAFF (path terpisah tapi UI sama)
 Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->group(function () {
-    Route::view('/', 'staff')->name('dashboard');
-    Route::view('/data-anggota', 'staff.data-anggota')->name('data-anggota');
-    Route::view('/kelola-buku', 'staff.kelola-buku')->name('kelola-buku');
-    Route::view('/kelola-buku/create', 'staff.kelola-buku-create')->name('kelola-buku.create');
+    Route::get('/', [\App\Http\Controllers\StaffController::class, 'dashboard'])->name('dashboard');
+    Route::get('/data-anggota', [\App\Http\Controllers\DataAnggotaController::class, 'index'])->name('data-anggota');
+    Route::get('/kelola-buku', [\App\Http\Controllers\KelolaBukuController::class, 'index'])->name('kelola-buku');
+    Route::get('/kelola-buku/create', [\App\Http\Controllers\KelolaBukuController::class, 'create'])->name('kelola-buku.create');
+    Route::post('/kelola-buku', [\App\Http\Controllers\KelolaBukuController::class, 'store'])->name('kelola-buku.store');
+    Route::get('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'show'])->name('kelola-buku.show');
+    Route::put('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'update'])->name('kelola-buku.update');
+    Route::delete('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'destroy'])->name('kelola-buku.destroy');
     Route::view('/kelola-buku/import', 'staff.kelola-buku-import')->name('kelola-buku.import');
     Route::get('/kelola-buku/export', [StaffBukuController::class, 'export'])->name('kelola-buku.export');
-    Route::get('/laporan-peminjaman', [\App\Http\Controllers\LaporanPeminjamanController::class, 'index'])->name('laporan-peminjaman');
+    Route::view('/laporan-peminjaman', 'staff.laporan-peminjaman')->name('laporan-peminjaman');
     Route::view('/pengaturan', 'staff.pengaturan')->name('pengaturan');
     Route::post('/kelola-buku/import', [StaffBukuController::class, 'import'])->name('kelola-buku.import.process');
-    
-    // Route approve peminjaman untuk staff
-    Route::post('/api/pinjaman/{id}/approve', [\App\Http\Controllers\ApprovePinjamanController::class, 'approve'])->name('pinjaman.approve');
-    Route::post('/api/pinjaman/{id}/reject', [\App\Http\Controllers\ApprovePinjamanController::class, 'reject'])->name('pinjaman.reject');
-    Route::post('/api/pinjaman/{id}/confirm-taken', [\App\Http\Controllers\ApprovePinjamanController::class, 'confirmTaken'])->name('pinjaman.confirm-taken');
-    Route::post('/api/pinjaman/{id}/return', [\App\Http\Controllers\PinjamanController::class, 'returnBook'])->name('pinjaman.return');
-    
-    // Route approve peminjaman untuk staff
-    Route::post('/api/pinjaman/{id}/approve', [\App\Http\Controllers\ApprovePinjamanController::class, 'approve'])->name('pinjaman.approve');
-    Route::post('/api/pinjaman/{id}/reject', [\App\Http\Controllers\ApprovePinjamanController::class, 'reject'])->name('pinjaman.reject');
-    Route::post('/api/pinjaman/{id}/confirm-taken', [\App\Http\Controllers\ApprovePinjamanController::class, 'confirmTaken'])->name('pinjaman.confirm-taken');
-    Route::post('/api/pinjaman/{id}/return', [\App\Http\Controllers\PinjamanController::class, 'returnBook'])->name('pinjaman.return');
     
     // Route untuk log performa pencarian (tanpa controller baru)
     Route::post('/log-search', function (\Illuminate\Http\Request $request) {

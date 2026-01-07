@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+
 // use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pinjaman extends Model
@@ -23,15 +24,14 @@ class Pinjaman extends Model
         'denda',
     ];
 
-     protected $casts = [
+    protected $casts = [
         'tanggal_pinjam' => 'date',
         'tanggal_jatuh_tempo' => 'date',
         'tanggal_kembali' => 'date',
         'denda' => 'float',
         'status' => 'string',
     ];
-        
-    
+
     public function pengguna()
     {
         return $this->belongsTo(Pengguna::class, 'pengguna_id');

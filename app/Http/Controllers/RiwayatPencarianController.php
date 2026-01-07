@@ -45,4 +45,21 @@ class RiwayatPencarianController extends Controller
             'message' => 'Riwayat pencarian berhasil dihapus',
         ]);
     }
+
+    public function destroy($keyword)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        // Hapus berdasarkan keyword dan user_id
+        LogPencarian::where('pengguna_id', $user->id)
+            ->where('kata_kunci', $keyword)
+            ->delete();
+
+        return response()->json([
+            'message' => 'Riwayat pencarian berhasil dihapus',
+        ]);
+    }
 }

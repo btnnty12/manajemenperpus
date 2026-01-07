@@ -308,9 +308,26 @@
     }
 
     function deleteHistory(keyword) {
-        // Hapus dari array lokal
-        searchHistory = searchHistory.filter(item => item.keyword !== keyword);
-        renderHistory();
+        // Hapus dari database
+        fetch(`/api/riwayat-pencarian/${keyword}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(() => {
+            // Hapus dari array lokal dan render ulang
+            searchHistory = searchHistory.filter(item => item.keyword !== keyword);
+            renderHistory();
+        })
+        .catch(error => {
+            console.error('Error deleting history:', error);
+            // Fallback: hapus dari array lokal saja
+            searchHistory = searchHistory.filter(item => item.keyword !== keyword);
+            renderHistory();
+        });
     }
 
     function clearAllHistory() {

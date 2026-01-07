@@ -125,8 +125,14 @@
         </button>
         <div class="border-l border-white h-6"></div>
         <div class="flex items-center space-x-2">
-            <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold">FA</div>
-            <span class="text-black font-medium">Admin</span>
+            <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
+                @if(Auth::check() && Auth::user()->foto)
+                    <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}'">
+                @else
+                    {{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}
+                @endif
+            </div>
+            <span class="text-black font-medium">{{ Auth::user()->nama ?? 'Admin' }}</span>
         </div>
     </div>
 

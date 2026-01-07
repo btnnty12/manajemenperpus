@@ -9,7 +9,7 @@ class RoleMiddleware
 {
     public function handle(Request $request, Closure $next, ...$roles)
     {
-        if (!session()->has('role')) {
+        if (! session()->has('role')) {
             if (auth()->check() && auth()->user()->peran) {
                 session()->put('role', auth()->user()->peran);
             } else {
@@ -19,6 +19,7 @@ class RoleMiddleware
 
         $normalize = function ($role) {
             $r = strtolower(trim((string) $role));
+
             return match ($r) {
                 'administrator' => 'admin',
                 'petugas' => 'staff',
@@ -29,7 +30,7 @@ class RoleMiddleware
         $userRole = $normalize(session('role'));
         $allowedRoles = array_map($normalize, $roles);
 
-        if (!in_array($userRole, $allowedRoles)) {
+        if (! in_array($userRole, $allowedRoles)) {
             return match ($userRole) {
                 'admin' => redirect()->route('admin')->with('error', 'Tidak punya akses'),
                 'staff' => redirect()->route('staff')->with('error', 'Tidak punya akses'),

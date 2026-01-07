@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Pengguna;
+use App\Models\Activity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Pengguna;
-use App\Models\Activity;
 
 class AuthController extends Controller
 {
@@ -14,19 +14,19 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'kata_sandi' => 'required'
+            'kata_sandi' => 'required',
         ]);
 
         // Cari user berdasarkan email (case-insensitive)
         $email = strtolower(trim($request->email));
         $user = Pengguna::whereRaw('LOWER(email) = ?', [$email])->first();
 
-        if (!$user) {
+        if (! $user) {
             // Debug: log untuk melihat email yang dicari
             \Log::info('Login attempt failed - Email not found', ['email' => $request->email]);
             
             return back()->withErrors([
-                'email' => 'Email tidak ditemukan!'
+                'email' => 'Email tidak ditemukan!',
             ])->withInput($request->only('email'));
         }
 
@@ -40,8 +40,8 @@ class AuthController extends Controller
             // Set session data (dipakai RoleMiddleware)
             $request->session()->put([
                 'email' => $user->email,
-                'nama'  => $user->nama,
-                'role'  => $user->peran,
+                'nama' => $user->nama,
+                'role' => $user->peran,
             ]);
 
             // Log aktivitas login
@@ -70,7 +70,7 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'Email atau kata sandi salah!'
+            'email' => 'Email atau kata sandi salah!',
         ])->withInput($request->only('email'));
     }
 

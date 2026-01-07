@@ -12,46 +12,46 @@ class StringMatchingTest extends TestCase
             'text' => 'ABABDABACDABABCABAB',
             'pattern' => 'ABABCABAB',
             'expected' => [10],
-            'description' => 'Pattern found in the middle of text'
+            'description' => 'Pattern found in the middle of text',
         ],
         [
             'text' => 'AABAACAADAABAABA',
             'pattern' => 'AABA',
             'expected' => [0, 9, 12],
-            'description' => 'Multiple occurrences of pattern'
+            'description' => 'Multiple occurrences of pattern',
         ],
         [
             'text' => 'This is a test string',
             'pattern' => 'test',
             'expected' => [10],
-            'description' => 'Simple word search'
+            'description' => 'Simple word search',
         ],
         [
             'text' => 'ABCABCABC',
             'pattern' => 'ABC',
             'expected' => [0, 3, 6],
-            'description' => 'Repeating pattern'
+            'description' => 'Repeating pattern',
         ],
         [
             'text' => 'Hello World',
             'pattern' => 'notfound',
             'expected' => [],
-            'description' => 'Pattern not found'
+            'description' => 'Pattern not found',
         ],
         [
             'text' => 'CaseSensitive',
             'pattern' => 'sensitive',
             'expected' => [],
             'case_sensitive' => true,
-            'description' => 'Case sensitive search'
+            'description' => 'Case sensitive search',
         ],
         [
             'text' => 'CaseInsensitive',
             'pattern' => 'insensitive',
             'expected' => [4],
             'case_sensitive' => false,
-            'description' => 'Case insensitive search'
-        ]
+            'description' => 'Case insensitive search',
+        ],
     ];
 
     public function test_brute_force_algorithm()
@@ -62,7 +62,7 @@ class StringMatchingTest extends TestCase
                 $testCase['text'],
                 $testCase['pattern'],
                 'bf',
-                !$caseInsensitive
+                ! $caseInsensitive
             );
             $this->assertEquals(
                 $testCase['expected'],
@@ -80,7 +80,7 @@ class StringMatchingTest extends TestCase
                 $testCase['text'],
                 $testCase['pattern'],
                 'kmp',
-                !$caseInsensitive
+                ! $caseInsensitive
             );
             $this->assertEquals(
                 $testCase['expected'],
@@ -98,7 +98,7 @@ class StringMatchingTest extends TestCase
                 $testCase['text'],
                 $testCase['pattern'],
                 'bm',
-                !$caseInsensitive
+                ! $caseInsensitive
             );
             $this->assertEquals(
                 $testCase['expected'],

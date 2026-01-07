@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
 class FavoriteController extends Controller
 {
     public function index()
@@ -27,7 +25,7 @@ class FavoriteController extends Controller
     public function toggle(string $slug)
     {
         $books = \App\Models\Buku::dummyData();
-        if (!isset($books[$slug])) {
+        if (! isset($books[$slug])) {
             abort(404);
         }
 

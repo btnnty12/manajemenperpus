@@ -15,11 +15,11 @@ return new class extends Migration
             $table->string('kata_sandi');
 
             $table->enum('peran', ['admin', 'pengguna', 'staff'])
-                  ->default('pengguna');
+                ->default('pengguna');
 
             $table->rememberToken();
 
-            $table->timestamps(); 
+            $table->timestamps();
         });
     }
 

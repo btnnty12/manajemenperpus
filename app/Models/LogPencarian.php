@@ -15,8 +15,8 @@ class LogPencarian extends Model
         'pengguna_id',
         'kata_kunci',
         'jumlah_hasil',
-        'algorithm',         
-        'process_time_ms',  
+        'algorithm',
+        'process_time_ms',
     ];
 
     public function pengguna()

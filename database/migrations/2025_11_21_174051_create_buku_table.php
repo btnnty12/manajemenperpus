@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('deskripsi')->nullable();
 
             $table->unsignedSmallInteger('tahun_terbit')->nullable();
-    
+
             $table->unsignedInteger('stok')->default(0);
 
             $table->timestamps();

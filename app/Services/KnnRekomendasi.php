@@ -31,7 +31,7 @@ class KnnRecommendation
 
         return [
             'buku_id' => $rekomendasiBuku->buku_id ?? null,
-            'skor' => max($topUsers) ?? 0
+            'skor' => max($topUsers) ?? 0,
         ];
     }
 }

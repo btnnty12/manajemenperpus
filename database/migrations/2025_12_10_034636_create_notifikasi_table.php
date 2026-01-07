@@ -20,7 +20,7 @@ return new class extends Migration
 
             // Foreign key
             $table->foreign('pengguna_id')->references('id')->on('pengguna')->onDelete('cascade');
-            
+
             // Index
             $table->index('pengguna_id');
             $table->index('dibaca');

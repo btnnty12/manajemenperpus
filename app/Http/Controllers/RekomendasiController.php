@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Rekomendasi;
+use Illuminate\Http\Request;
 
 class RekomendasiController extends Controller
 {
@@ -18,10 +18,9 @@ class RekomendasiController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $rek
+            'data' => $rek,
         ]);
     }
-
 
     // =========================================
     // POST: Tambah rekomendasi single
@@ -29,15 +28,15 @@ class RekomendasiController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'pengguna_id'        => 'required|exists:pengguna,id',
-            'buku_id'            => 'required|exists:buku,id',
-            'skor_rekomendasi'   => 'nullable|numeric'
+            'pengguna_id' => 'required|exists:pengguna,id',
+            'buku_id' => 'required|exists:buku,id',
+            'skor_rekomendasi' => 'nullable|numeric',
         ]);
 
         $rek = Rekomendasi::updateOrCreate(
             [
                 'pengguna_id' => $request->pengguna_id,
-                'buku_id'     => $request->buku_id,
+                'buku_id' => $request->buku_id,
             ],
             [
                 'skor_rekomendasi' => $request->skor_rekomendasi ?? 0,
@@ -47,10 +46,9 @@ class RekomendasiController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Rekomendasi berhasil disimpan',
-            'data'    => $rek
+            'data' => $rek,
         ]);
     }
-
 
     // =========================================
     // GET: Detail rekomendasi by ID
@@ -62,10 +60,9 @@ class RekomendasiController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $rek
+            'data' => $rek,
         ]);
     }
-
 
     // =========================================
     // PUT: Update skor rekomendasi
@@ -73,20 +70,19 @@ class RekomendasiController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'skor_rekomendasi' => 'required|numeric'
+            'skor_rekomendasi' => 'required|numeric',
         ]);
 
         $rek = Rekomendasi::findOrFail($id);
         $rek->update([
-            'skor_rekomendasi' => $request->skor_rekomendasi
+            'skor_rekomendasi' => $request->skor_rekomendasi,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Rekomendasi diperbarui'
+            'message' => 'Rekomendasi diperbarui',
         ]);
     }
-
 
     // =========================================
     // DELETE: Hapus rekomendasi
@@ -97,10 +93,9 @@ class RekomendasiController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Rekomendasi dihapus'
+            'message' => 'Rekomendasi dihapus',
         ]);
     }
-
 
     // =========================================
     // GET: Rekomendasi berdasarkan pengguna
@@ -117,16 +112,15 @@ class RekomendasiController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Belum ada rekomendasi untuk pengguna ini',
-                'data'    => []
+                'data' => [],
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'data'    => $rek
+            'data' => $rek,
         ]);
     }
-
 
     // =========================================================
     // POST: SIMPAN BANYAK REKOMENDASI (Batch dari algoritma KNN)
@@ -134,10 +128,10 @@ class RekomendasiController extends Controller
     public function simpanBatch(Request $request)
     {
         $request->validate([
-            'pengguna_id'                 => 'required|exists:pengguna,id',
-            'rekomendasi'                 => 'required|array',
-            'rekomendasi.*.buku_id'       => 'required|exists:buku,id',
-            'rekomendasi.*.skor'          => 'required|numeric',
+            'pengguna_id' => 'required|exists:pengguna,id',
+            'rekomendasi' => 'required|array',
+            'rekomendasi.*.buku_id' => 'required|exists:buku,id',
+            'rekomendasi.*.skor' => 'required|numeric',
         ]);
 
         $pengguna_id = $request->pengguna_id;
@@ -150,11 +144,11 @@ class RekomendasiController extends Controller
         $insertData = [];
         foreach ($data as $item) {
             $insertData[] = [
-                'pengguna_id'        => $pengguna_id,
-                'buku_id'            => $item['buku_id'],
-                'skor_rekomendasi'   => $item['skor'],
-                'created_at'         => now(),
-                'updated_at'         => now(),
+                'pengguna_id' => $pengguna_id,
+                'buku_id' => $item['buku_id'],
+                'skor_rekomendasi' => $item['skor'],
+                'created_at' => now(),
+                'updated_at' => now(),
             ];
         }
 
@@ -162,7 +156,7 @@ class RekomendasiController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Batch rekomendasi berhasil disimpan'
+            'message' => 'Batch rekomendasi berhasil disimpan',
         ]);
     }
 }

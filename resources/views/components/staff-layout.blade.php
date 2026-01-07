@@ -87,8 +87,8 @@
             </button>
             <div id="staffProfileBtn" class="flex items-center space-x-2 cursor-pointer">
                 <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
-                    @if(Auth::check() && Auth::user()->profile_photo)
-                        <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" class="w-full h-full object-cover">
+                    @if(Auth::check() && Auth::user()->foto)
+                        <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'ST', 0, 2)) }}'">
                     @else
                         {{ strtoupper(substr(Auth::user()->nama ?? 'ST', 0, 2)) }}
                     @endif

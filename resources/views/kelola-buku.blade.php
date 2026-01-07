@@ -8,6 +8,14 @@
 </head>
 
 <body class="bg-[#f6d47f] flex">
+@php
+    $isStaff = auth()->check() && auth()->user()->peran === 'staff';
+    $baseRoute = $isStaff ? 'staff.kelola-buku' : 'kelola-buku';
+@endphp
+<script>
+    const isStaff = {{ $isStaff ? 'true' : 'false' }};
+    const baseRoute = '{{ $isStaff ? "/staff/kelola-buku" : "/kelola-buku" }}';
+</script>
 
 <style>
 #indicator {
@@ -66,11 +74,13 @@
 /* --- TOMBOL TAMBAH BUKU & IMPORT EXCEL --- */
 .top-buttons {
     position: absolute;
-    right: 40px;
+    right: 10px;
     top: 221px;    /* lebih naik sedikit dari sebelumnya */
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
+    transform: scale(0.9);
+    transform-origin: top right;
 }
 
 .btn-green {
@@ -167,10 +177,14 @@
 
     <!-- Profile -->
     <div class="flex items-center space-x-2">
-        <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold">
-            A
+        <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
+            @if(Auth::check() && Auth::user()->foto)
+                <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}'">
+            @else
+                {{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}
+            @endif
         </div>
-        <span class="text-black font-medium">Admin</span>
+        <span class="text-black font-medium">{{ Auth::user()->nama ?? 'Admin' }}</span>
     </div>
 
 </div>
@@ -217,27 +231,31 @@
     <button class="btn-white" onclick="openImportExcelModal()">
         <i class="fa-solid fa-file-import"></i> Import Excel
     </button>
+    
+    <a class="btn-white" href="{{ session('role') === 'staff' ? route('staff.dashboard') : route('admin') }}">
+        <i class="fa-solid fa-arrow-left"></i> Kembali ke Dashboard Staff
+    </a>
 </div>
 
     <!-- 4 KOTAK STATISTIK -->
     <div class="stats-row">
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">255</h2>
+            <h2 class="text-4xl font-bold">{{ $stats['totalJudul'] ?? 0 }}</h2>
             <p>Total Buku</p>
         </div>
 
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">224</h2>
+            <h2 class="text-4xl font-bold">{{ $stats['tersedia'] ?? 0 }}</h2>
             <p>Buku Tersedia</p>
         </div>
 
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">150</h2>
+            <h2 class="text-4xl font-bold">{{ $stats['dipinjam'] ?? 0 }}</h2>
             <p>Sedang Dipinjam</p>
         </div>
 
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">10</h2>
+            <h2 class="text-4xl font-bold">{{ $stats['bukuBaruBulanIni'] ?? 0 }}</h2>
             <p>Buku Baru Bulan Ini</p>
         </div>
     </div>
@@ -289,161 +307,38 @@
 
         <tbody id="bukuTableBody">
 
-            <!-- 1 -->
-            <tr class="border-b buku-row" data-judul="bahasa inggris untuk akademik" data-kategori="Bahasa" data-status="Tersedia">
-                <td class="px-6 py-3">BK-001</td>
-                <td class="px-6 py-3">Rak-001</td>
-                <td class="px-6 py-3">Bahasa Inggris untuk Akademik</td>
-                <td class="px-6 py-3">Bahasa</td>
-                <td class="px-6 py-3">8</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
-            </tr>
-
-            <!-- 2 -->
-            <tr class="border-b buku-row" data-judul="algoritma dan struktur data" data-kategori="Pemrograman" data-status="Tidak Tersedia">
-                <td class="px-6 py-3">BK-002</td>
-                <td class="px-6 py-3">Rak-002</td>
-                <td class="px-6 py-3">Algoritma dan Struktur Data</td>
-                <td class="px-6 py-3">Pemrograman</td>
-                <td class="px-6 py-3">3</td>
-                <td class="px-6 py-3 text-red-600 font-semibold">Tidak Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
-            </tr>
-
-            <!-- 3 -->
-            <tr class="border-b buku-row" data-judul="psikologi remaja modern" data-kategori="Psikologi" data-status="Tersedia">
-                <td class="px-6 py-3">BK-003</td>
-                <td class="px-6 py-3">Rak-003</td>
-                <td class="px-6 py-3">Psikologi Remaja Modern</td>
-                <td class="px-6 py-3">Psikologi</td>
-                <td class="px-6 py-3">6</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
-            </tr>
-
-            <!-- 4 -->
-            <tr class="border-b buku-row" data-judul="dasar-dasar akuntansi" data-kategori="Akuntansi" data-status="Tersedia">
-                <td class="px-6 py-3">BK-004</td>
-                <td class="px-6 py-3">Rak-004</td>
-                <td class="px-6 py-3">Dasar-Dasar Akuntansi</td>
-                <td class="px-6 py-3">Akuntansi</td>
-                <td class="px-6 py-3">10</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
-            </tr>
-
-            <!-- 5 -->
-            <tr class="border-b buku-row" data-judul="manajemen proyek ti" data-kategori="Manajemen" data-status="Tidak Tersedia">
-                <td class="px-6 py-3">BK-005</td>
-                <td class="px-6 py-3">Rak-005</td>
-                <td class="px-6 py-3">Manajemen Proyek TI</td>
-                <td class="px-6 py-3">Manajemen</td>
+            @forelse ($buku as $item)
+            @php
+                $status = ($item->stok ?? 0) > 0 ? 'Tersedia' : 'Tidak Tersedia';
+                $statusClass = ($item->stok ?? 0) > 0 ? 'text-green-600' : 'text-red-600';
+            @endphp
+            <tr class="border-b buku-row"
+                data-judul="{{ strtolower($item->judul ?? '') }}"
+                data-kategori="{{ $item->genre ?? '' }}"
+                data-status="{{ $status }}">
+                <td class="px-6 py-3">{{ $item->id }}</td>
                 <td class="px-6 py-3">-</td>
-                <td class="px-6 py-3 text-red-600 font-semibold">Tidak Tersedia</td>
+                <td class="px-6 py-3">{{ $item->judul }}</td>
+                <td class="px-6 py-3">{{ $item->genre }}</td>
+                <td class="px-6 py-3">{{ $item->stok }}</td>
+                <td class="px-6 py-3 font-semibold {{ $statusClass }}">{{ $status }}</td>
                 <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
+                    <button onclick="showDetailBuku({{ $item->id }})" class="p-2 rounded hover:bg-gray-100" title="Detail">
+                        <x-icon name="eye" class="w-5 h-5 text-blue-600" />
                     </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
+                    <button onclick="openEditBukuModal({{ $item->id }})" class="p-2 rounded hover:bg-gray-100" title="Edit">
+                        <x-icon name="edit" class="w-5 h-5 text-amber-600" />
                     </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
-                    </button>
-                </td>
-            </tr>
-
-            <!-- 6 -->
-            <tr class="border-b buku-row" data-judul="statistika untuk penelitian" data-kategori="Statistik" data-status="Tersedia">
-                <td class="px-6 py-3">BK-006</td>
-                <td class="px-6 py-3">Rak-006</td>
-                <td class="px-6 py-3">Statistika untuk Penelitian</td>
-                <td class="px-6 py-3">Statistik</td>
-                <td class="px-6 py-3">14</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <button class="p-2 rounded hover:bg-gray-100" title="Detail">
-                        <x-icon name="eye" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Edit">
-                        <x-icon name="edit" class="w-5 h-5 text-gray-700" />
-                    </button>
-                    <button class="p-2 rounded hover:bg-gray-100" title="Hapus">
-                        <x-icon name="delete" class="w-5 h-5 text-gray-700" />
+                    <button onclick="deleteBuku({{ $item->id }}, '{{ addslashes($item->judul) }}')" class="p-2 rounded hover:bg-gray-100" title="Hapus">
+                        <x-icon name="delete" class="w-5 h-5 text-red-600" />
                     </button>
                 </td>
             </tr>
-
-            <!-- 7 -->
-            <tr class="border-b buku-row" data-judul="pengantar kecerdasan buatan" data-kategori="AI" data-status="Tersedia">
-                <td class="px-6 py-3">BK-007</td>
-                <td class="px-6 py-3">Rak-007</td>
-                <td class="px-6 py-3">Pengantar Kecerdasan Buatan</td>
-                <td class="px-6 py-3">AI</td>
-                <td class="px-6 py-3">23</td>
-                <td class="px-6 py-3 text-green-600 font-semibold">Tersedia</td>
-                <td class="px-6 py-3 flex gap-3">
-                    <img src="{{ asset('icons/info.png') }}" class="w-5">
-                    <img src="{{ asset('icons/edit.png') }}" class="w-5">
-                    <img src="{{ asset('icons/delete.png') }}" class="w-5">
-                </td>
+            @empty
+            <tr class="buku-row">
+                <td class="px-6 py-3 text-center text-gray-500" colspan="7">Belum ada data buku.</td>
             </tr>
-
-            <!-- 8 -->
-            <tr class="buku-row" data-judul="sejarah nusantara kuno" data-kategori="Budaya" data-status="Tidak Tersedia">
-                <td class="px-6 py-3">BK-008</td>
-                <td class="px-6 py-3">Rak-008</td>
-                <td class="px-6 py-3">Sejarah Nusantara Kuno</td>
-                <td class="px-6 py-3">Budaya</td>
-                <td class="px-6 py-3">8</td>
-                <td class="px-6 py-3 text-red-600 font-semibold">Tidak Tersedia</td>
-                <td class="px-6 py-3 flex gap-3">
-                    <img src="{{ asset('icons/info.png') }}" class="w-5">
-                    <img src="{{ asset('icons/edit.png') }}" class="w-5">
-                    <img src="{{ asset('icons/delete.png') }}" class="w-5">
-                </td>
-            </tr>
+            @endforelse
 
         </tbody>
     </table>
@@ -467,28 +362,35 @@
             <button onclick="closeTambahBukuModal()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
         </div>
 
-        <form id="tambahBukuForm" onsubmit="handleTambahBuku(event)" enctype="multipart/form-data">
+        <form id="tambahBukuForm" action="{{ auth()->user()->peran === 'staff' ? route('staff.kelola-buku.store') : route('kelola-buku.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-semibold mb-2">ID Buku</label>
-                    <input type="text" name="id_buku" class="w-full p-3 rounded-lg border shadow" placeholder="BK-001" required>
+                    <label class="block text-sm font-semibold mb-2">Cover Buku</label>
+                    <input type="file" name="cover" id="coverInput" accept="image/*" class="w-full p-3 rounded-lg border shadow" onchange="previewCover(event)">
+                    <div id="coverPreview" class="hidden mt-3">
+                        <img id="coverPreviewImg" src="" alt="Preview Cover" class="w-full h-48 object-cover rounded-lg border">
+                        <button type="button" onclick="removeCoverPreview()" class="mt-2 text-red-600 text-sm hover:underline">Hapus Preview</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, GIF (Max 2MB)</p>
                 </div>
-                
-                <div>
-                    <label class="block text-sm font-semibold mb-2">Rak Buku</label>
-                    <input type="text" name="rak" class="w-full p-3 rounded-lg border shadow" placeholder="Rak-001" required>
-                </div>
-                
+
                 <div>
                     <label class="block text-sm font-semibold mb-2">Judul Buku</label>
                     <input type="text" name="judul" class="w-full p-3 rounded-lg border shadow" placeholder="Judul Buku" required>
                 </div>
                 
                 <div>
+                    <label class="block text-sm font-semibold mb-2">Penulis</label>
+                    <input type="text" name="penulis" class="w-full p-3 rounded-lg border shadow" placeholder="Nama penulis" required>
+                </div>
+                
+                <div>
                     <label class="block text-sm font-semibold mb-2">Kategori</label>
-                    <select name="kategori" class="w-full p-3 rounded-lg border shadow" required>
+                    <select name="kategori" id="tambahKategori" class="w-full p-3 rounded-lg border shadow" onchange="updateRakBuku(this.value, 'tambah')">
                         <option value="">Pilih Kategori</option>
-                        <option value="Bahasa">Bahasa</option>
+                        <option value="Teknologi">Teknologi</option>
+                        <option value="Keamanan">Keamanan</option>
                         <option value="Pemrograman">Pemrograman</option>
                         <option value="Psikologi">Psikologi</option>
                         <option value="Akuntansi">Akuntansi</option>
@@ -496,42 +398,43 @@
                         <option value="Statistik">Statistik</option>
                         <option value="AI">AI</option>
                         <option value="Budaya">Budaya</option>
+                        <option value="Bahasa">Bahasa</option>
+                        <option value="Matematika">Matematika</option>
+                        <option value="Desain">Desain</option>
+                        <option value="Fiksi">Fiksi</option>
+                        <option value="Sejarah">Sejarah</option>
                     </select>
                 </div>
-                
+
                 <div>
-                    <label class="block text-sm font-semibold mb-2">Cover Buku</label>
-                    <input type="file" name="cover" id="coverInput" accept="image/*" class="w-full p-3 rounded-lg border shadow" onchange="previewCover(event)">
-                    <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, atau GIF (Max: 2MB)</p>
-                    <div id="coverPreview" class="mt-3 hidden">
-                        <img id="coverPreviewImg" src="" alt="Preview Cover" class="w-full h-48 object-cover rounded-lg border shadow">
-                        <button type="button" onclick="removeCoverPreview()" class="mt-2 text-sm text-red-600 hover:underline">
-                            <i class="fa-solid fa-trash"></i> Hapus Preview
-        </button>
-                    </div>
+                    <label class="block text-sm font-semibold mb-2">Rak Buku</label>
+                    <input type="text" id="tambahRak" class="w-full p-3 rounded-lg border shadow bg-gray-100" value="-" readonly>
+                    <p class="text-xs text-gray-500 mt-1">Rak akan otomatis terisi sesuai kategori</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Tahun Terbit</label>
+                    <input type="number" name="tahun_terbit" class="w-full p-3 rounded-lg border shadow" placeholder="2024" min="1000" max="9999">
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold mb-2">Stok</label>
                     <input type="number" name="stok" class="w-full p-3 rounded-lg border shadow" placeholder="10" min="0" required>
-        </div>
+                </div>
 
                 <div>
-                    <label class="block text-sm font-semibold mb-2">Status</label>
-                    <select name="status" class="w-full p-3 rounded-lg border shadow" required>
-                        <option value="Tersedia">Tersedia</option>
-                        <option value="Tidak Tersedia">Tidak Tersedia</option>
-                    </select>
+                    <label class="block text-sm font-semibold mb-2">Deskripsi</label>
+                    <textarea name="deskripsi" class="w-full p-3 rounded-lg border shadow" rows="3" placeholder="Deskripsi singkat"></textarea>
                 </div>
             </div>
             
             <div class="flex gap-4 mt-6">
                 <button type="button" onclick="closeTambahBukuModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-400">
                     Batal
-        </button>
+                </button>
                 <button type="submit" class="flex-1 bg-[#A63A2D] text-white py-3 rounded-lg font-bold hover:bg-[#923223]">
                     Simpan
-        </button>
+                </button>
             </div>
         </form>
     </div>
@@ -545,7 +448,7 @@
             <button onclick="closeImportExcelModal()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
     </div>
     
-        <form id="importExcelForm" action="{{ route('kelola-buku.import') }}" method="POST" enctype="multipart/form-data">
+        <form id="importExcelForm" action="{{ auth()->user()->peran === 'staff' ? route('staff.kelola-buku.import.process') : route('kelola-buku.import') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="space-y-4">
                 <div>
@@ -579,13 +482,48 @@
             <h3 class="text-2xl font-bold text-[#A63A2D]">Detail Buku</h3>
             <button onclick="closeDetailBukuModal()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
         </div>
-        <div class="space-y-3 text-sm">
-            <p><span class="font-semibold">ID Buku:</span> <span id="detailId"></span></p>
-            <p><span class="font-semibold">Rak:</span> <span id="detailRak"></span></p>
-            <p><span class="font-semibold">Judul:</span> <span id="detailJudul"></span></p>
-            <p><span class="font-semibold">Kategori:</span> <span id="detailKategori"></span></p>
-            <p><span class="font-semibold">Stok:</span> <span id="detailStok"></span></p>
-            <p><span class="font-semibold">Status:</span> <span id="detailStatus"></span></p>
+        <div class="space-y-4">
+            <div id="detailCoverContainer" class="hidden mb-4">
+                <img id="detailCover" src="" alt="Cover Buku" class="w-full h-48 object-cover rounded-lg border">
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                    <p class="font-semibold text-gray-700">ID Buku:</p>
+                    <p id="detailId" class="text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700">Rak Buku:</p>
+                    <p id="detailRak" class="text-gray-900">-</p>
+                </div>
+                <div class="col-span-2">
+                    <p class="font-semibold text-gray-700">Judul:</p>
+                    <p id="detailJudul" class="text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700">Penulis:</p>
+                    <p id="detailPenulis" class="text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700">Kategori:</p>
+                    <p id="detailKategori" class="text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700">Tahun Terbit:</p>
+                    <p id="detailTahunTerbit" class="text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700">Stok:</p>
+                    <p id="detailStok" class="text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700">Status:</p>
+                    <p id="detailStatus" class="text-gray-900"></p>
+                </div>
+                <div class="col-span-2">
+                    <p class="font-semibold text-gray-700">Deskripsi:</p>
+                    <p id="detailDeskripsi" class="text-gray-900 text-xs"></p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -598,16 +536,28 @@
             <button onclick="closeEditBukuModal()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
         </div>
 
-        <form id="editBukuForm" onsubmit="handleEditBuku(event)">
+        <form id="editBukuForm" onsubmit="handleEditBuku(event)" enctype="multipart/form-data">
             <div class="space-y-4">
                 <div>
+                    <label class="block text-sm font-semibold mb-2">Cover Buku</label>
+                    <input type="file" name="cover" id="editCoverInput" accept="image/*" class="w-full p-3 rounded-lg border shadow" onchange="previewEditCover(event)">
+                    <div id="editCoverPreview" class="hidden mt-3">
+                        <img id="editCoverPreviewImg" src="" alt="Preview Cover" class="w-full h-48 object-cover rounded-lg border">
+                        <button type="button" onclick="removeEditCoverPreview()" class="mt-2 text-red-600 text-sm hover:underline">Hapus Preview</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, GIF (Max 2MB). Kosongkan jika tidak ingin mengubah cover.</p>
+                </div>
+
+                <div>
                     <label class="block text-sm font-semibold mb-2">ID Buku</label>
-                    <input type="text" name="id_buku" id="editIdBuku" class="w-full p-3 rounded-lg border shadow" required>
+                    <input type="text" id="editIdBuku" class="w-full p-3 rounded-lg border shadow bg-gray-100" readonly>
+                    <p class="text-xs text-gray-500 mt-1">ID buku tidak dapat diubah</p>
                 </div>
                 
                 <div>
                     <label class="block text-sm font-semibold mb-2">Rak Buku</label>
-                    <input type="text" name="rak" id="editRak" class="w-full p-3 rounded-lg border shadow" required>
+                    <input type="text" id="editRak" class="w-full p-3 rounded-lg border shadow bg-gray-100" readonly>
+                    <p class="text-xs text-gray-500 mt-1">Rak akan otomatis terisi sesuai kategori</p>
                 </div>
                 
                 <div>
@@ -616,10 +566,16 @@
                 </div>
                 
                 <div>
+                    <label class="block text-sm font-semibold mb-2">Penulis</label>
+                    <input type="text" name="penulis" id="editPenulis" class="w-full p-3 rounded-lg border shadow" required>
+                </div>
+                
+                <div>
                     <label class="block text-sm font-semibold mb-2">Kategori</label>
-                    <select name="kategori" id="editKategori" class="w-full p-3 rounded-lg border shadow" required>
+                    <select name="kategori" id="editKategori" class="w-full p-3 rounded-lg border shadow" required onchange="updateRakBuku(this.value, 'edit')">
                         <option value="">Pilih Kategori</option>
-                        <option value="Bahasa">Bahasa</option>
+                        <option value="Teknologi">Teknologi</option>
+                        <option value="Keamanan">Keamanan</option>
                         <option value="Pemrograman">Pemrograman</option>
                         <option value="Psikologi">Psikologi</option>
                         <option value="Akuntansi">Akuntansi</option>
@@ -627,12 +583,27 @@
                         <option value="Statistik">Statistik</option>
                         <option value="AI">AI</option>
                         <option value="Budaya">Budaya</option>
+                        <option value="Bahasa">Bahasa</option>
+                        <option value="Matematika">Matematika</option>
+                        <option value="Desain">Desain</option>
+                        <option value="Fiksi">Fiksi</option>
+                        <option value="Sejarah">Sejarah</option>
                     </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Tahun Terbit</label>
+                    <input type="number" name="tahun_terbit" id="editTahunTerbit" class="w-full p-3 rounded-lg border shadow" min="1500" max="2099" required>
                 </div>
                 
                 <div>
                     <label class="block text-sm font-semibold mb-2">Stok</label>
                     <input type="number" name="stok" id="editStok" class="w-full p-3 rounded-lg border shadow" min="0" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Deskripsi</label>
+                    <textarea name="deskripsi" id="editDeskripsi" class="w-full p-3 rounded-lg border shadow" rows="3"></textarea>
                 </div>
                 
                 <div>
@@ -665,7 +636,7 @@ document.querySelectorAll('.menu-item').forEach((item, index) => {
         // ROUTING UNTUK ADMIN
         if (index === 0) window.location.href = "/admin";           // dashboard
         if (index === 1) window.location.href = "/data-anggota";     // kelola buku
-        if (index === 2) window.location.href = "/kelola-buku";    // data anggota
+        if (index === 2) window.location.href = "{{ $isStaff ? route('staff.kelola-buku') : route('kelola.buku') }}";    // kelola buku
         if (index === 3) window.location.href = "/laporan-peminjaman"; // laporan
         if (index === 4) window.location.href = "/kelola-user";     // kelola user
     });
@@ -920,21 +891,143 @@ function openDetailBukuModal(data) {
     document.getElementById('detailBukuModal').classList.remove('hidden');
 }
 
+function showDetailBuku(id) {
+    // Validasi ID
+    if (!id || id === 'undefined' || id === 'null') {
+        alert('ID buku tidak valid');
+        return;
+    }
+    
+    fetch(`${baseRoute}/${id}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'Gagal memuat data buku');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+        // Tampilkan cover jika ada
+        const coverContainer = document.getElementById('detailCoverContainer');
+        const coverImg = document.getElementById('detailCover');
+        if (data.cover_url) {
+            coverImg.src = data.cover_url;
+            coverContainer.classList.remove('hidden');
+        } else {
+            coverContainer.classList.add('hidden');
+        }
+        
+        // Isi data detail
+        document.getElementById('detailId').textContent = data.id || '-';
+        document.getElementById('detailRak').textContent = '-'; // Rak akan dihitung berdasarkan kategori
+        document.getElementById('detailJudul').textContent = data.judul || '-';
+        document.getElementById('detailPenulis').textContent = data.penulis || '-';
+        document.getElementById('detailKategori').textContent = data.genre || '-';
+        document.getElementById('detailTahunTerbit').textContent = data.tahun_terbit || '-';
+        document.getElementById('detailStok').textContent = data.stok || 0;
+        document.getElementById('detailStatus').textContent = (data.stok > 0) ? 'Tersedia' : 'Tidak Tersedia';
+        document.getElementById('detailDeskripsi').textContent = data.deskripsi || '-';
+        
+        document.getElementById('detailBukuModal').classList.remove('hidden');
+        document.getElementById('detailBukuModal').classList.add('flex');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Gagal memuat detail buku');
+    });
+}
+
+function openDetailBukuModal(data) {
+    document.getElementById('detailId').textContent = data.id || '-';
+    document.getElementById('detailRak').textContent = data.rak || '-';
+    document.getElementById('detailJudul').textContent = data.judul || '-';
+    document.getElementById('detailKategori').textContent = data.kategori || '-';
+    document.getElementById('detailStok').textContent = data.stok || 0;
+    document.getElementById('detailStatus').textContent = data.status || '-';
+    document.getElementById('detailBukuModal').classList.remove('hidden');
+    document.getElementById('detailBukuModal').classList.add('flex');
+}
+
 function closeDetailBukuModal() {
     document.getElementById('detailBukuModal').classList.add('hidden');
+    document.getElementById('detailBukuModal').classList.remove('flex');
 }
 
 let editTargetRow = null;
-function openEditBukuModal(data, row) {
-    editTargetRow = row;
-    document.getElementById('editIdBuku').value = data.id;
-    document.getElementById('editRak').value = data.rak;
-    document.getElementById('editJudul').value = data.judul;
-    document.getElementById('editKategori').value = data.kategori;
-    document.getElementById('editStok').value = data.stok;
-    document.getElementById('editStatus').value = data.status;
-    document.getElementById('editBukuModal').classList.remove('hidden');
-    document.getElementById('editBukuModal').classList.add('flex');
+function openEditBukuModal(id) {
+    // Validasi ID
+    if (!id || id === 'undefined' || id === 'null') {
+        alert('ID buku tidak valid');
+        return;
+    }
+    
+    fetch(`${baseRoute}/${id}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'Gagal memuat data buku');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+        document.getElementById('editIdBuku').value = data.id || '';
+        document.getElementById('editJudul').value = data.judul || '';
+        document.getElementById('editPenulis').value = data.penulis || '';
+        const kategori = data.genre || '';
+        document.getElementById('editKategori').value = kategori;
+        // Update rak berdasarkan kategori
+        updateRakBuku(kategori, 'edit');
+        document.getElementById('editTahunTerbit').value = data.tahun_terbit || '';
+        document.getElementById('editStok').value = data.stok || 0;
+        document.getElementById('editDeskripsi').value = data.deskripsi || '';
+        document.getElementById('editBukuForm').setAttribute('data-id', data.id);
+        
+        // Tampilkan cover saat ini jika ada
+        const editCoverPreview = document.getElementById('editCoverPreview');
+        const editCoverPreviewImg = document.getElementById('editCoverPreviewImg');
+        if (data.cover_url || data.cover) {
+            const coverUrl = data.cover_url || (data.cover.startsWith('http') ? data.cover : `/storage/${data.cover}`);
+            editCoverPreviewImg.src = coverUrl;
+            editCoverPreview.classList.remove('hidden');
+        } else {
+            editCoverPreview.classList.add('hidden');
+        }
+        
+        document.getElementById('editBukuModal').classList.remove('hidden');
+        document.getElementById('editBukuModal').classList.add('flex');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Gagal memuat data buku');
+    });
+}
+
+// Fungsi lama untuk kompatibilitas dengan attachRowActions
+function openEditBukuModalOld(data, row) {
+    // Gunakan fungsi baru dengan id dari data
+    if (data.id) {
+        openEditBukuModal(data.id);
+    }
 }
 
 function closeEditBukuModal() {
@@ -945,32 +1038,122 @@ function closeEditBukuModal() {
 
 function handleEditBuku(event) {
     event.preventDefault();
-    if (!editTargetRow) return;
+    const form = event.target;
+    const id = form.getAttribute('data-id');
+    if (!id || id === 'undefined' || id === 'null') {
+        alert('ID buku tidak valid');
+        return;
+    }
 
-    const formData = new FormData(event.target);
-    const data = Object.fromEntries(formData);
+    const formData = new FormData(form);
+    formData.append('_method', 'PUT');
+    
+    // Pastikan semua field yang diperlukan dikirim
+    const judul = formData.get('judul');
+    const penulis = formData.get('penulis');
+    const tahunTerbit = formData.get('tahun_terbit');
+    const stok = formData.get('stok');
+    
+    if (!judul || !penulis || !tahunTerbit || stok === null) {
+        alert('Mohon lengkapi semua field yang wajib diisi');
+        return;
+    }
+    
+    // Pastikan genre dikirim jika kategori dipilih
+    const kategori = formData.get('kategori');
+    if (kategori) {
+        formData.append('genre', kategori);
+    }
+    
+    // Tampilkan loading indicator
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Menyimpan...';
+    }
+    
+    // Tambahkan _method untuk method spoofing
+    formData.append('_method', 'PUT');
+    
+    fetch(`${baseRoute}/${id}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+            return null;
+        }
+        return response.json().then(data => {
+            if (!response.ok) {
+                throw new Error(data.error || data.message || 'Gagal memperbarui buku');
+            }
+            return data;
+        });
+    })
+    .then(data => {
+        if (data) {
+            if (data.success) {
+                alert(data.message || 'Buku berhasil diperbarui');
+                closeEditBukuModal();
+                location.reload();
+            } else {
+                alert(data.error || 'Gagal memperbarui buku');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message || 'Gagal memperbarui buku. Silakan coba lagi.');
+    })
+    .finally(() => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    });
+}
 
-    const cells = editTargetRow.querySelectorAll('td');
-    cells[0].textContent = data.id_buku;
-    cells[1].textContent = data.rak;
-    cells[2].textContent = data.judul;
-    cells[3].textContent = data.kategori;
-    cells[4].textContent = data.stok;
+function deleteBuku(id, judul) {
+    if (!confirm(`Yakin ingin menghapus buku "${judul}"?`)) {
+        return;
+    }
 
-    const statusCell = cells[5];
-    statusCell.textContent = data.status;
-    statusCell.className = `px-6 py-3 font-semibold ${data.status === 'Tersedia' ? 'text-green-600' : 'text-red-600'}`;
-
-    // Simpan ke dataset untuk filtering
-    editTargetRow.setAttribute('data-judul', data.judul.toLowerCase());
-    editTargetRow.setAttribute('data-kategori', data.kategori);
-    editTargetRow.setAttribute('data-status', data.status);
-    editTargetRow.setAttribute('data-id', data.id_buku);
-    editTargetRow.setAttribute('data-rak', data.rak);
-    editTargetRow.setAttribute('data-stok', data.stok);
-
-    closeEditBukuModal();
-    updatePagination();
+    fetch(`${baseRoute}/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+            return;
+        }
+        if (response.ok) {
+            return response.json();
+        }
+        return response.json().then(err => {
+            throw new Error(err.message || 'Gagal menghapus buku');
+        });
+    })
+    .then(data => {
+        if (data) {
+            alert('Buku berhasil dihapus');
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message || 'Gagal menghapus buku. Pastikan buku tidak sedang dipinjam.');
+    });
 }
 
 function handleDeleteBuku(row, data) {
@@ -982,8 +1165,9 @@ function handleDeleteBuku(row, data) {
 }
 
 function attachRowActions(row) {
-    const icons = row.querySelectorAll('img');
-    if (icons.length < 3) return;
+    const detailBtn = row.querySelector('button[title="Detail"]');
+    const editBtn = row.querySelector('button[title="Edit"]');
+    const deleteBtn = row.querySelector('button[title="Hapus"]');
 
     const getData = () => {
         const cells = row.querySelectorAll('td');
@@ -997,9 +1181,9 @@ function attachRowActions(row) {
         };
     };
 
-    icons[0].onclick = () => openDetailBukuModal(getData());
-    icons[1].onclick = () => openEditBukuModal(getData(), row);
-    icons[2].onclick = () => handleDeleteBuku(row, getData());
+    if (detailBtn) detailBtn.onclick = () => openDetailBukuModal(getData());
+    if (editBtn) editBtn.onclick = () => openEditBukuModal(getData(), row);
+    if (deleteBtn) deleteBtn.onclick = () => handleDeleteBuku(row, getData());
 }
 
 function initRowActions() {
@@ -1043,6 +1227,72 @@ function removeCoverPreview() {
     previewDiv.classList.add('hidden');
     if (coverInput) {
         coverInput.value = '';
+    }
+}
+
+function previewEditCover(event) {
+    const file = event.target.files[0];
+    const previewDiv = document.getElementById('editCoverPreview');
+    const previewImg = document.getElementById('editCoverPreviewImg');
+    
+    if (file) {
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Ukuran file terlalu besar! Maksimal 2MB.');
+            event.target.value = '';
+            return;
+        }
+        
+        if (!file.type.match('image.*')) {
+            alert('File harus berupa gambar!');
+            event.target.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            previewDiv.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        previewDiv.classList.add('hidden');
+    }
+}
+
+function removeEditCoverPreview() {
+    const previewDiv = document.getElementById('editCoverPreview');
+    const coverInput = document.getElementById('editCoverInput');
+    previewDiv.classList.add('hidden');
+    if (coverInput) {
+        coverInput.value = '';
+    }
+}
+
+// Mapping kategori ke rak buku
+const kategoriRakMapping = {
+    'Teknologi': 'A1',
+    'Keamanan': 'A2',
+    'Pemrograman': 'B1',
+    'Psikologi': 'C1',
+    'Akuntansi': 'D1',
+    'Manajemen': 'E1',
+    'Statistik': 'F1',
+    'AI': 'A3',
+    'Budaya': 'G1',
+    'Bahasa': 'H1',
+    'Matematika': 'F2',
+    'Desain': 'I1',
+    'Fiksi': 'J1',
+    'Sejarah': 'K1'
+};
+
+function updateRakBuku(kategori, formType) {
+    const rakInput = formType === 'tambah' ? document.getElementById('tambahRak') : document.getElementById('editRak');
+    if (rakInput && kategori) {
+        const rak = kategoriRakMapping[kategori] || 'L1';
+        rakInput.value = rak;
+    } else if (rakInput) {
+        rakInput.value = '-';
     }
 }
 
