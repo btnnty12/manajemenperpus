@@ -72,6 +72,8 @@
                 </div>
                 <select id="statusFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="filterTable()">
                     <option value="">Semua Status</option>
+                    <option value="menunggu_approval">Menunggu Approval</option>
+                    <option value="dapat_diambil">Dapat Diambil</option>
                     <option value="sedang_dipinjam">Sedang Dipinjam</option>
                     <option value="terlambat">Terlambat</option>
                     <option value="dikembalikan">Dikembalikan</option>
@@ -89,6 +91,7 @@
                             <th class="px-4 py-3 text-left">Tanggal Pinjam</th>
                             <th class="px-4 py-3 text-left">Status</th>
                             <th class="px-4 py-3 text-left">Denda</th>
+                            <th class="px-4 py-3 text-left">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="pinjamanTable" class="divide-y">
@@ -98,7 +101,13 @@
                             $statusClass = '';
                             $isTerlambat = false;
                             
-                            if ($row->status === 'dikembalikan') {
+                            if ($row->status === 'menunggu_approval') {
+                                $statusDisplay = 'Menunggu Approval';
+                                $statusClass = 'bg-yellow-100 text-yellow-700';
+                            } elseif ($row->status === 'dapat_diambil') {
+                                $statusDisplay = 'Dapat Diambil';
+                                $statusClass = 'bg-blue-100 text-blue-700';
+                            } elseif ($row->status === 'dikembalikan') {
                                 $statusDisplay = 'Dikembalikan';
                                 $statusClass = 'bg-green-100 text-green-700';
                             } elseif ($row->status === 'sedang_dipinjam') {
@@ -153,6 +162,46 @@
                                 </span>
                             </td>
                             <td class="px-4 py-2">{{ $dendaDisplay }}</td>
+                            <td class="px-4 py-2">
+                                <div class="flex gap-2 items-center">
+                                    @if($row->status === 'menunggu_approval')
+                                        <button onclick="approvePinjaman({{ $row->id }})" 
+                                                class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition font-semibold"
+                                                title="Setujui peminjaman">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                        <button onclick="rejectPinjaman({{ $row->id }})" 
+                                                class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition font-semibold"
+                                                title="Tolak peminjaman">
+                                            <i class="fas fa-times"></i> Tolak
+                                        </button>
+                                    @elseif($row->status === 'dapat_diambil')
+                                        <button onclick="confirmAmbil({{ $row->id }})" 
+                                                class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition font-semibold"
+                                                title="Konfirmasi buku sudah diambil">
+                                            <i class="fas fa-check-circle"></i> Konfirmasi
+                                        </button>
+                                        <button onclick="showDetailStaff({{ $row->id }}, '{{ addslashes($row->pengguna->nama ?? '') }}', '{{ addslashes($row->buku->judul ?? '') }}', '{{ $row->tanggal_pinjam ? Carbon::parse($row->tanggal_pinjam)->format('d/m/Y') : '-' }}', '{{ $row->tanggal_jatuh_tempo ? Carbon::parse($row->tanggal_jatuh_tempo)->format('d/m/Y') : '-' }}', '{{ $statusDisplay }}', '{{ $dendaValue }}')" 
+                                                class="bg-gray-600 text-white px-3 py-1 rounded text-xs hover:bg-gray-700 transition"
+                                                title="Lihat detail">
+                                            <i class="fas fa-info-circle"></i>
+                                        </button>
+                                    @else
+                                        <button onclick="showDetailStaff({{ $row->id }}, '{{ addslashes($row->pengguna->nama ?? '') }}', '{{ addslashes($row->buku->judul ?? '') }}', '{{ $row->tanggal_pinjam ? Carbon::parse($row->tanggal_pinjam)->format('d/m/Y') : '-' }}', '{{ $row->tanggal_jatuh_tempo ? Carbon::parse($row->tanggal_jatuh_tempo)->format('d/m/Y') : '-' }}', '{{ $statusDisplay }}', '{{ $dendaValue }}')" 
+                                                class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition"
+                                                title="Lihat detail">
+                                            <i class="fas fa-info-circle"></i> Detail
+                                        </button>
+                                        @if($row->status === 'sedang_dipinjam' && !$isTerlambat)
+                                            <button onclick="returnBookStaff({{ $row->id }})" 
+                                                    class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition"
+                                                    title="Konfirmasi pengembalian">
+                                                <i class="fas fa-undo"></i> Kembalikan
+                                            </button>
+                                        @endif
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -264,6 +313,7 @@
 
             if (visibleCount === 0) {
                 noResults.classList.remove('hidden');
+                noResults.innerHTML = '<p class="text-lg font-semibold">Tidak ada data peminjaman yang ditemukan</p><p class="text-sm mt-2 text-gray-400">Coba ubah filter atau kata kunci pencarian Anda.</p>';
             } else {
                 noResults.classList.add('hidden');
             }
@@ -272,6 +322,128 @@
         document.addEventListener('DOMContentLoaded', function() {
             window.filterTable = filterTable;
         });
+
+        // ======================================================
+        // FUNGSI APPROVE & REJECT PINJAMAN
+        // ======================================================
+        function approvePinjaman(id) {
+            if (!confirm('Apakah Anda yakin ingin menyetujui peminjaman ini?')) {
+                return;
+            }
+            
+            fetch(`/staff/api/pinjaman/${id}/approve`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Peminjaman berhasil disetujui!');
+                    location.reload();
+                } else {
+                    alert('Gagal menyetujui peminjaman: ' + (data.message || 'Terjadi kesalahan'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menyetujui peminjaman');
+            });
+        }
+
+        function rejectPinjaman(id) {
+            if (!confirm('Apakah Anda yakin ingin menolak peminjaman ini? Peminjaman akan dihapus dari sistem.')) {
+                return;
+            }
+            
+            fetch(`/staff/api/pinjaman/${id}/reject`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Peminjaman berhasil ditolak!');
+                    location.reload();
+                } else {
+                    alert('Gagal menolak peminjaman: ' + (data.message || 'Terjadi kesalahan'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menolak peminjaman');
+            });
+        }
+
+        // ======================================================
+        // FUNGSI DETAIL & AKSI LAINNYA
+        // ======================================================
+        function showDetailStaff(id, nama, judul, tglPinjam, tglJatuhTempo, status, denda) {
+            alert(`Detail Peminjaman\n\nID: P-${String(id).padStart(6, '0')}\nNama: ${nama}\nJudul: ${judul}\nTanggal Pinjam: ${tglPinjam}\nJatuh Tempo: ${tglJatuhTempo}\nStatus: ${status}\nDenda: ${denda > 0 ? 'Rp ' + parseInt(denda).toLocaleString('id-ID') : '-'}`);
+        }
+
+        function confirmAmbil(id) {
+            if (!confirm('Apakah Anda yakin buku sudah diambil oleh peminjam?')) {
+                return;
+            }
+            
+            fetch(`/staff/api/pinjaman/${id}/confirm-taken`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Status berhasil diupdate! Buku sedang dipinjam.');
+                    location.reload();
+                } else {
+                    alert('Gagal mengupdate status: ' + (data.message || 'Terjadi kesalahan'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengupdate status');
+            });
+        }
+
+        function returnBookStaff(id) {
+            if (!confirm('Apakah Anda yakin buku sudah dikembalikan?')) {
+                return;
+            }
+            
+            fetch(`/staff/api/pinjaman/${id}/return`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success || data.message) {
+                    alert('Buku berhasil dikembalikan!');
+                    location.reload();
+                } else {
+                    alert('Gagal mengembalikan buku: ' + (data.message || 'Terjadi kesalahan'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengembalikan buku');
+            });
+        }
     </script>
 </x-staff-layout>
 

@@ -50,14 +50,7 @@ Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->nam
 */
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/home', function () {
-        $user = [
-            'nama' => session('nama', 'Pengguna'),
-            'email' => session('email'),
-            'role' => session('role'),
-        ];
-        return view('home', ['user' => $user]);
-    })
+    Route::get('/home', [\App\Http\Controllers\HomeController::class, 'index'])
         ->middleware('role:pengguna,staff,admin')
         ->name('home');
 
@@ -65,31 +58,29 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:pengguna,staff,admin')
         ->name('notifikasi');
 
-    Route::view('/search', 'search')
+    Route::get('/search', [\App\Http\Controllers\SearchPageController::class, 'index'])
         ->middleware('role:pengguna,staff,admin')
         ->name('search');
 
-    Route::get('/pengembalian-buku', function () {
-        $user = [
-            'nama' => session('nama', 'Pengguna'),
-            'email' => session('email'),
-            'role' => session('role'),
-        ];
-        return view('index', ['user' => $user]);
-    })
+    Route::get('/pinjaman', [\App\Http\Controllers\UserPeminjamanController::class, 'index'])
+        ->middleware('role:pengguna')
+        ->name('pinjaman.index');
+
+    Route::get('/pengembalian-buku', [\App\Http\Controllers\PengembalianBukuController::class, 'index'])
         ->middleware('role:pengguna')
         ->name('pengembalian.index');
 
-    Route::get('/pengembalian/create', function () {
-        $user = [
-            'nama' => session('nama', 'Pengguna'),
-            'email' => session('email'),
-            'role' => session('role'),
-        ];
-        return view('create', ['user' => $user]);
-    })
+    Route::get('/pengembalian/create', [\App\Http\Controllers\CreatePinjamanController::class, 'index'])
         ->middleware('role:pengguna')
         ->name('pengembalian.create');
+    
+    Route::post('/pengembalian/create', [\App\Http\Controllers\CreatePinjamanController::class, 'store'])
+        ->middleware('role:pengguna')
+        ->name('pengembalian.store');
+    
+    Route::get('/api/search-buku', [\App\Http\Controllers\CreatePinjamanController::class, 'searchBuku'])
+        ->middleware('role:pengguna')
+        ->name('api.search-buku');
 
     Route::get('/create', fn () => redirect()->route('pengembalian.create'))
         ->middleware('role:pengguna');
@@ -133,14 +124,23 @@ Route::middleware(['auth'])->group(function () {
         ->name('pesan.confirm');
     Route::post('/api/pesan/{id}/reply', [\App\Http\Controllers\PesanController::class, 'reply'])
         ->name('pesan.reply');
+    Route::delete('/api/pesan/{id}', [\App\Http\Controllers\PesanController::class, 'destroy'])
+        ->name('pesan.destroy');
     Route::get('/api/pengguna', [\App\Http\Controllers\PenggunaController::class, 'index'])
         ->middleware('role:admin,staff')
         ->name('pengguna.index');
 
-    // Dashboard staff
-    Route::view('/staff', 'staff')
-        ->middleware('role:staff')
-        ->name('staff');
+    // Route aktivitas
+    Route::get('/aktivitas', [\App\Http\Controllers\AktivitasController::class, 'index'])
+        ->name('aktivitas.index');
+    Route::get('/api/aktivitas', [\App\Http\Controllers\AktivitasController::class, 'api'])
+        ->name('aktivitas.api');
+
+    // Route riwayat pencarian
+    Route::get('/api/riwayat-pencarian', [\App\Http\Controllers\RiwayatPencarianController::class, 'index'])
+        ->name('riwayat-pencarian.index');
+    Route::delete('/api/riwayat-pencarian', [\App\Http\Controllers\RiwayatPencarianController::class, 'clear'])
+        ->name('riwayat-pencarian.clear');
 });
 
 /*
@@ -157,8 +157,14 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::view('/data-anggota', 'data-anggota')->name('data.anggota');
     Route::view('/kelola-buku', 'kelola-buku')->name('kelola.buku');
     Route::post('/kelola-buku/import', [StaffBukuController::class, 'import'])->name('kelola-buku.import');
-    Route::view('/laporan-peminjaman', 'laporan-peminjaman')->name('laporan-peminjaman');
+    Route::get('/laporan-peminjaman', [\App\Http\Controllers\LaporanPeminjamanController::class, 'index'])->name('laporan-peminjaman');
     Route::view('/kelola-user', 'kelola-user')->name('kelola-user');
+    
+    // Route approve peminjaman
+    Route::post('/api/pinjaman/{id}/approve', [\App\Http\Controllers\ApprovePinjamanController::class, 'approve'])->name('pinjaman.approve');
+    Route::post('/api/pinjaman/{id}/reject', [\App\Http\Controllers\ApprovePinjamanController::class, 'reject'])->name('pinjaman.reject');
+    Route::post('/api/pinjaman/{id}/confirm-taken', [\App\Http\Controllers\ApprovePinjamanController::class, 'confirmTaken'])->name('pinjaman.confirm-taken');
+    Route::post('/api/pinjaman/{id}/return', [\App\Http\Controllers\PinjamanController::class, 'returnBook'])->name('pinjaman.return');
 });
 
 // Halaman operasional STAFF (path terpisah tapi UI sama)
@@ -169,9 +175,21 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
     Route::view('/kelola-buku/create', 'staff.kelola-buku-create')->name('kelola-buku.create');
     Route::view('/kelola-buku/import', 'staff.kelola-buku-import')->name('kelola-buku.import');
     Route::get('/kelola-buku/export', [StaffBukuController::class, 'export'])->name('kelola-buku.export');
-    Route::view('/laporan-peminjaman', 'staff.laporan-peminjaman')->name('laporan-peminjaman');
+    Route::get('/laporan-peminjaman', [\App\Http\Controllers\LaporanPeminjamanController::class, 'index'])->name('laporan-peminjaman');
     Route::view('/pengaturan', 'staff.pengaturan')->name('pengaturan');
     Route::post('/kelola-buku/import', [StaffBukuController::class, 'import'])->name('kelola-buku.import.process');
+    
+    // Route approve peminjaman untuk staff
+    Route::post('/api/pinjaman/{id}/approve', [\App\Http\Controllers\ApprovePinjamanController::class, 'approve'])->name('pinjaman.approve');
+    Route::post('/api/pinjaman/{id}/reject', [\App\Http\Controllers\ApprovePinjamanController::class, 'reject'])->name('pinjaman.reject');
+    Route::post('/api/pinjaman/{id}/confirm-taken', [\App\Http\Controllers\ApprovePinjamanController::class, 'confirmTaken'])->name('pinjaman.confirm-taken');
+    Route::post('/api/pinjaman/{id}/return', [\App\Http\Controllers\PinjamanController::class, 'returnBook'])->name('pinjaman.return');
+    
+    // Route approve peminjaman untuk staff
+    Route::post('/api/pinjaman/{id}/approve', [\App\Http\Controllers\ApprovePinjamanController::class, 'approve'])->name('pinjaman.approve');
+    Route::post('/api/pinjaman/{id}/reject', [\App\Http\Controllers\ApprovePinjamanController::class, 'reject'])->name('pinjaman.reject');
+    Route::post('/api/pinjaman/{id}/confirm-taken', [\App\Http\Controllers\ApprovePinjamanController::class, 'confirmTaken'])->name('pinjaman.confirm-taken');
+    Route::post('/api/pinjaman/{id}/return', [\App\Http\Controllers\PinjamanController::class, 'returnBook'])->name('pinjaman.return');
     
     // Route untuk log performa pencarian (tanpa controller baru)
     Route::post('/log-search', function (\Illuminate\Http\Request $request) {

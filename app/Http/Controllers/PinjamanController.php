@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Pinjaman;
 use App\Models\Buku;
 use App\Models\Pengguna;
+use App\Models\Activity;
+use App\Models\Notifikasi;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class PinjamanController extends Controller
 {
@@ -60,6 +63,30 @@ class PinjamanController extends Controller
 
         // Kurangi stok buku
         $buku->decrement('stok');
+
+        // Log aktivitas pinjam buku
+        Activity::create([
+            'pengguna_id' => $pengguna->id,
+            'type' => 'pinjam_buku',
+            'description' => "Meminjam buku: {$buku->judul}",
+            'meta' => [
+                'buku_id' => $buku->id,
+                'buku_judul' => $buku->judul,
+                'pinjaman_id' => $pinjaman->id,
+                'tanggal_pinjam' => $pinjaman->tanggal_pinjam,
+                'tanggal_jatuh_tempo' => $pinjaman->tanggal_jatuh_tempo,
+            ],
+        ]);
+
+        // Buat notifikasi informasi peminjaman
+        Notifikasi::create([
+            'pengguna_id' => $pengguna->id,
+            'judul' => 'Buku Berhasil Dipinjam',
+            'pesan' => "Buku '{$buku->judul}' berhasil dipinjam. Jatuh tempo: " . Carbon::parse($pinjaman->tanggal_jatuh_tempo)->format('d F Y'),
+            'tipe' => 'success',
+            'dibaca' => false,
+            'link' => route('pengembalian.index'),
+        ]);
 
         return response()->json([
             'message' => 'Buku berhasil dipinjam',
@@ -116,6 +143,25 @@ class PinjamanController extends Controller
         ]);
         Buku::where('id', $pinjaman->buku_id)->increment('stok');
 
-        return response()->json(['message' => 'Buku berhasil dikembalikan']);
+        // Log aktivitas kembalikan buku
+        $buku = Buku::find($pinjaman->buku_id);
+        Activity::create([
+            'pengguna_id' => $pinjaman->pengguna_id,
+            'type' => 'kembalikan_buku',
+            'description' => "Mengembalikan buku: {$buku->judul ?? 'Buku'}",
+            'meta' => [
+                'buku_id' => $pinjaman->buku_id,
+                'buku_judul' => $buku->judul ?? null,
+                'pinjaman_id' => $pinjaman->id,
+                'tanggal_kembali' => $tanggalKembali->toDateString(),
+                'denda' => $denda,
+                'telat_hari' => $telatHari,
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Buku berhasil dikembalikan'
+        ]);
     }
 }

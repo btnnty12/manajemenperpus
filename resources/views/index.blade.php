@@ -36,42 +36,60 @@
         <p class="text-sm text-gray-700 mb-6">Hai {{ Auth::user()->nama ?? 'Pengguna' }}, pastikan kamu mengembalikan buku tepat waktu, ya.</p>
 
         <!-- STATISTIK CARDS -->
-        <div class="grid grid-cols-4 gap-6 mt-6">
-            @php
-                $stats = [
-                    ['20','Total'],
-                    ['2','Terlambat'],
-                    ['3','Sedang Dipinjam'],
-                    ['15','Telah Dikembalikan']
-                ];
-            @endphp
-            @foreach($stats as $c)
-                <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
-                    <div class="text-4xl font-bold">{{ $c[0] }}</div>
-                    <div class="mt-1">{{ $c[1] }}</div>
-                </div>
-            @endforeach
+        <div class="grid grid-cols-5 gap-6 mt-6">
+            <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
+                <div class="text-4xl font-bold">{{ $stats['total'] ?? 0 }}</div>
+                <div class="mt-1">Total</div>
+            </div>
+            <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
+                <div class="text-4xl font-bold">{{ $stats['dapat_diambil'] ?? 0 }}</div>
+                <div class="mt-1">Dapat Diambil</div>
+            </div>
+            <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
+                <div class="text-4xl font-bold">{{ $stats['terlambat'] ?? 0 }}</div>
+                <div class="mt-1">Terlambat</div>
+            </div>
+            <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
+                <div class="text-4xl font-bold">{{ $stats['sedang_dipinjam'] ?? 0 }}</div>
+                <div class="mt-1">Sedang Dipinjam</div>
+            </div>
+            <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
+                <div class="text-4xl font-bold">{{ $stats['dikembalikan'] ?? 0 }}</div>
+                <div class="mt-1">Telah Dikembalikan</div>
+            </div>
         </div>
 
         <!-- FILTER & SEARCH -->
-        <div class="flex items-center gap-3 mt-8">
-            <input id="searchInput" type="text" class="w-72 py-2 px-3 rounded-lg border" placeholder="Search by title...">
-            <select id="kategoriFilter" class="py-2 px-3 rounded-lg border w-40">
+        <form method="GET" action="{{ route('pengembalian.index') }}" class="flex items-center gap-3 mt-8">
+            <input name="search" id="searchInput" type="text" value="{{ request('search') }}" class="w-72 py-2 px-3 rounded-lg border" placeholder="Search by title...">
+            <select name="kategori" id="kategoriFilter" class="py-2 px-3 rounded-lg border w-40">
                 <option value="">Kategori</option>
-                <option value="Teknologi">Teknologi</option>
-                <option value="Informatika">Informatika</option>
-                <option value="Psikologi">Psikologi</option>
-                <option value="Ekonomi">Ekonomi</option>
-                <option value="Manajemen">Manajemen</option>
+                @php
+                    $kategoris = \App\Models\Pinjaman::where('pengguna_id', Auth::id())
+                        ->with('buku')
+                        ->get()
+                        ->pluck('buku.genre')
+                        ->filter()
+                        ->unique()
+                        ->values();
+                @endphp
+                @foreach($kategoris as $kat)
+                    <option value="{{ $kat }}" {{ request('kategori') == $kat ? 'selected' : '' }}>{{ $kat }}</option>
+                @endforeach
             </select>
-            <select id="statusFilter" class="py-2 px-3 rounded-lg border w-40">
+            <select name="status" id="statusFilter" class="py-2 px-3 rounded-lg border w-40">
                 <option value="">Status</option>
-                <option value="Selesai">Selesai</option>
-                <option value="Sedang Dipinjam">Sedang Dipinjam</option>
-                <option value="Terlambat">Terlambat</option>
+                <option value="Menunggu Approval" {{ request('status') == 'Menunggu Approval' ? 'selected' : '' }}>Menunggu Approval</option>
+                <option value="Dapat Diambil" {{ request('status') == 'Dapat Diambil' ? 'selected' : '' }}>Dapat Diambil</option>
+                <option value="Sedang Dipinjam" {{ request('status') == 'Sedang Dipinjam' ? 'selected' : '' }}>Sedang Dipinjam</option>
+                <option value="Terlambat" {{ request('status') == 'Terlambat' ? 'selected' : '' }}>Terlambat</option>
+                <option value="Selesai" {{ request('status') == 'Selesai' ? 'selected' : '' }}>Selesai</option>
             </select>
-            <button onclick="applyFilter()" class="bg-blue-600 text-white px-6 py-2 rounded-lg shadow">Search</button>
-        </div>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg shadow">Search</button>
+            @if(request()->hasAny(['search', 'kategori', 'status']))
+                <a href="{{ route('pengembalian.index') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg shadow">Reset</a>
+            @endif
+        </form>
 
         <!-- TABLE -->
         <div class="mt-8 bg-white rounded-lg shadow overflow-hidden">
@@ -88,42 +106,71 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @php
-                        $peminjaman = [
-                            ['P-023456','Pemrograman Web dengan ...','Teknologi','15 April 2025','Selesai'],
-                            ['P-032467','Algoritma dan Struktur Data','Informatika','19 Oktober 2025','Sedang Dipinjam'],
-                            ['P-098754','Psikologi Remaja Modern','Psikologi','3 Mei 2025','Selesai'],
-                            ['P-086532','Dasar-Dasar Akuntansi','Ekonomi','17 Mei 2025','Selesai'],
-                            ['P-076542','Manajemen Proyek TI','Manajemen','18 Juni 2025','Terlambat'],
-                        ];
-                        $today = strtotime('8 December 2025');
-                    @endphp
-
-                    @foreach($peminjaman as $row)
+                    @forelse($pinjaman ?? [] as $p)
                         @php
-                            $tanggal = strtotime($row[3]);
-                            $status = $row[4];
-                            $denda = 0;
-                            if($status=='Terlambat'){
-                                $daysLate = ceil(($today - $tanggal)/86400);
-                                $denda = $daysLate*5000;
+                            $tanggalJatuhTempo = $p->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($p->tanggal_jatuh_tempo) : null;
+                            $hariIni = \Carbon\Carbon::now();
+                            
+                            if ($p->status === 'menunggu_approval') {
+                                $statusLabel = 'Menunggu Approval';
+                                $statusColor = 'bg-yellow-500';
+                                $denda = 0;
+                            } elseif ($p->status === 'dapat_diambil') {
+                                $statusLabel = 'Dapat Diambil';
+                                $statusColor = 'bg-blue-500';
+                                $denda = 0;
+                            } elseif ($p->status === 'sedang_dipinjam' && $tanggalJatuhTempo) {
+                                if ($hariIni->gt($tanggalJatuhTempo)) {
+                                    $statusLabel = 'Terlambat';
+                                    $statusColor = 'bg-red-500';
+                                    $telatHari = $hariIni->diffInDays($tanggalJatuhTempo);
+                                    $denda = $telatHari * 5000;
+                                } else {
+                                    $statusLabel = 'Sedang Dipinjam';
+                                    $statusColor = 'bg-orange-500';
+                                    $denda = 0;
+                                }
+                            } elseif ($p->status === 'dikembalikan') {
+                                $statusLabel = 'Selesai';
+                                $statusColor = 'bg-green-500';
+                                $denda = $p->denda ?? 0;
+                            } else {
+                                $statusLabel = ucfirst(str_replace('_', ' ', $p->status));
+                                $statusColor = 'bg-gray-500';
+                                $denda = $p->denda ?? 0;
                             }
                         @endphp
                         <tr class="odd:bg-gray-100">
-                            <td class="px-4 py-2">{{ $row[0] }}</td>
-                            <td class="px-4 py-2">{{ $row[1] }}</td>
-                            <td class="px-4 py-2">{{ $row[2] }}</td>
-                            <td class="px-4 py-2">{{ $row[3] }}</td>
-                            <td class="px-4 py-2 flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full {{ $status=='Terlambat'?'bg-red-500':($status=='Sedang Dipinjam'?'bg-orange-500':'bg-green-500') }}"></span>
-                                {{ $status }}
+                            <td class="px-4 py-2">P-{{ str_pad($p->id, 6, '0', STR_PAD_LEFT) }}</td>
+                            <td class="px-4 py-2">{{ $p->buku->judul ?? 'N/A' }}</td>
+                            <td class="px-4 py-2">{{ $p->buku->genre ?? 'N/A' }}</td>
+                            <td class="px-4 py-2">
+                                @if($p->tanggal_pinjam)
+                                    {{ \Carbon\Carbon::parse($p->tanggal_pinjam)->format('d F Y') }}
+                                @else
+                                    N/A
+                                @endif
                             </td>
-                            <td class="px-4 py-2">@if($denda>0) Rp {{ number_format($denda,0,',','.') }} @else - @endif</td>
+                            <td class="px-4 py-2 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full {{ $statusColor }}"></span>
+                                {{ $statusLabel }}
+                            </td>
+                            <td class="px-4 py-2">
+                                @if($denda > 0)
+                                    Rp {{ number_format($denda, 0, ',', '.') }}
+                                @else
+                                    -
+                                @endif
+                            </td>
                             <td class="px-4 py-2 text-center">
-                                <button onclick="openDetail('{{ $row[0] }}','{{ $row[1] }}','{{ $row[2] }}','{{ $row[3] }}','{{ $row[4] }}','{{ $denda }}')" class="text-black hover:scale-110 transition"><i class="fas fa-info-circle"></i></button>
+                                <button onclick="openDetail('P-{{ str_pad($p->id, 6, '0', STR_PAD_LEFT) }}','{{ $p->buku->judul ?? 'N/A' }}','{{ $p->buku->genre ?? 'N/A' }}','{{ $p->tanggal_pinjam ? \Carbon\Carbon::parse($p->tanggal_pinjam)->format('d F Y') : 'N/A' }}','{{ $statusLabel }}','{{ $denda }}')" class="text-black hover:scale-110 transition"><i class="fas fa-info-circle"></i></button>
                             </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-gray-500">Belum ada data pengembalian buku</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -159,25 +206,8 @@ function closeDetail(){
     document.getElementById('detailPopup').classList.add('hidden');
 }
 
-// FILTER & SEARCH
-function applyFilter(){
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    const kategori = document.getElementById('kategoriFilter').value;
-    const status = document.getElementById('statusFilter').value;
-    const table = document.getElementById('dataTable');
-    const rows = table.querySelectorAll('tbody tr');
-
-    rows.forEach(row=>{
-        const title = row.cells[1].innerText.toLowerCase();
-        const cat = row.cells[2].innerText;
-        const stat = row.cells[4].innerText;
-        let show = true;
-        if(search && !title.includes(search)) show=false;
-        if(kategori && cat!=kategori) show=false;
-        if(status && stat!=status) show=false;
-        row.style.display = show?'':'none';
-    });
-}
+// Filter sudah menggunakan form GET, jadi tidak perlu JavaScript filter lagi
+// Form akan otomatis submit dan reload halaman dengan filter yang dipilih
 </script>
 <script>
 // Sidebar highlight movement

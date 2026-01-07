@@ -23,12 +23,9 @@
         <button id="notifBtn" onclick="toggleNotifPopup()" class="text-2xl hover:opacity-80 relative">🔔
             <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
         </button>
-        <button id="msgBtn" class="text-2xl hover:opacity-80 relative">✉️
-            <span id="msgBadge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
-        </button>
         <div class="bg-blue-500 w-10 h-10 rounded-full text-white flex items-center justify-center font-bold cursor-pointer overflow-hidden">
-            @if(Auth::check() && Auth::user()->profile_photo)
-                <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" class="w-full h-full object-cover">
+            @if(Auth::check() && Auth::user()->foto)
+                <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}'">
             @else
                 {{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}
             @endif
@@ -61,7 +58,16 @@
                 @if(Auth::check()) @method('PUT') @endif
 
                 <div class="flex flex-col items-center">
-                    <img src="{{ (Auth::check() && Auth::user()->profile_photo) ? asset('storage/' . Auth::user()->profile_photo) : asset('icons/profile.png') }}" id="profilePreview" class="w-24 h-24 rounded-full shadow mb-3">
+                    @if(Auth::check() && Auth::user()->foto)
+                        <img src="{{ asset('storage/' . Auth::user()->foto) }}" id="profilePreview" class="w-24 h-24 rounded-full shadow mb-3 object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div id="profilePreviewFallback" class="w-24 h-24 rounded-full shadow mb-3 bg-gray-300 flex items-center justify-center text-gray-600 font-bold text-2xl" style="display: none;">
+                            {{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}
+                        </div>
+                    @else
+                        <div id="profilePreview" class="w-24 h-24 rounded-full shadow mb-3 bg-gray-300 flex items-center justify-center text-gray-600 font-bold text-2xl">
+                            {{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}
+                        </div>
+                    @endif
                     @if(Auth::check())
                     <label class="cursor-pointer bg-[#A63A2D] hover:bg-[#923223] text-white px-4 py-2 rounded text-sm">
                         Ubah Foto

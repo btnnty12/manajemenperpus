@@ -138,4 +138,23 @@ class PesanController extends Controller
 
         return response()->json(['data' => $reply], 201);
     }
+
+    public function destroy($id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $pesan = Pesan::findOrFail($id);
+
+        // Validasi: hanya pengirim atau penerima yang bisa hapus
+        if ($pesan->pengirim_id !== $user->id && $pesan->penerima_id !== $user->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $pesan->delete();
+
+        return response()->json(['message' => 'Pesan berhasil dihapus']);
+    }
 }

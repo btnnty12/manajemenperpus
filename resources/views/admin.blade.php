@@ -12,6 +12,9 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
   <style> 
     /* small customizations to match the feel */
     .sidebar-bg { background: #8a3b2b; }            /* coklat sidebar */
@@ -88,12 +91,6 @@
         <!-- Divider kiri -->
         <div class="border-l border-white h-6"></div>
 
-        <!-- Icon pesan -->
-        <button id="messageBtn" onclick="toggleMessagePopup()" class="relative">
-            <x-icon name="email" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
-            <span id="messageBadge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
-        </button>
-
         <!-- Icon notif -->
         <button id="notifBtn" onclick="toggleNotifPopup()" class="relative">
             <x-icon name="notification" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
@@ -104,16 +101,28 @@
         <div class="border-l border-white h-6"></div>
 
         <!-- Profile -->
-        <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='{{ route('pengaturan') }}'">
-            <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
-                @if(Auth::check() && Auth::user()->profile_photo)
-                    <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" class="w-full h-full object-cover">
-                @else
-                    {{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}
-                @endif
+        <div class="relative">
+            <div id="adminProfileBtn" class="flex items-center space-x-2 cursor-pointer">
+                <div class="bg-[#717BFF] w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
+                    @if(Auth::check() && Auth::user()->foto_url)
+                        <img src="{{ Auth::user()->foto_url }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}'">
+                    @else
+                        {{ strtoupper(substr(Auth::user()->nama ?? 'AD', 0, 2)) }}
+                    @endif
+                </div>
+                <div class="text-left">
+                    <div class="text-black font-medium leading-tight">{{ Auth::user()->nama ?? 'Admin' }}</div>
+                    <div class="text-xs text-gray-600">Admin</div>
+                </div>
             </div>
-
-            <span class="text-black font-medium">{{ Auth::user()->nama ?? 'Admin' }}</span>
+            <div id="adminProfileDropdown" class="hidden absolute top-14 right-0 w-40 bg-white shadow-xl rounded-xl py-2 z-50 border border-gray-200">
+                <a href="{{ route('pengaturan') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition">
+                    <i class="fas fa-cog mr-2"></i> Pengaturan
+                </a>
+                <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-semibold transition">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Keluar
+                </a>
+            </div>
         </div>
     </div>
 
@@ -160,7 +169,7 @@
                 </div>
                 <div>
                   <div class="text-sm text-gray-600">Jumlah Buku</div>
-                  <div class="stat-num text-gray-900">255</div>
+                  <div class="stat-num text-gray-900">{{ $totalBuku ?? 0 }}</div>
                 </div>
               </div>
 
@@ -170,7 +179,7 @@
                 </div>
                 <div>
                   <div class="text-sm text-gray-600">Jumlah User</div>
-                  <div class="stat-num text-gray-900">155</div>
+                  <div class="stat-num text-gray-900">{{ $totalUser ?? 0 }}</div>
                 </div>
               </div>
 
@@ -180,17 +189,17 @@
                 </div>
                 <div>
                   <div class="text-sm text-gray-600">Buku Yang Sedang Dipinjam</div>
-                  <div class="stat-num text-gray-900">155</div>
+                  <div class="stat-num text-gray-900">{{ $totalPinjamanAktif ?? 0 }}</div>
                 </div>
               </div>
             </div>
 
             <!-- chart & small stats header -->
-            <div class="p-6 rounded-xl shadow-lg bg-white">
+              <div class="p-6 rounded-xl shadow-lg bg-white">
               <div class="flex justify-between items-center mb-4">
                 <div>
                   <div class="text-sm text-gray-600">Peminjaman & Pengembalian Buku (Per bulan)</div>
-                  <div class="text-2xl font-bold">Total Peminjam <span class="text-amber-600">110</span></div>
+                  <div class="text-2xl font-bold">Total Peminjam <span class="text-amber-600">{{ collect($chartData ?? [])->sum('peminjam') }}</span></div>
                 </div>
 
                 <div class="flex items-center gap-4">
@@ -222,29 +231,18 @@
 
               <div class="max-h-[520px] overflow-auto scrollbar-thin pr-2">
                 <!-- repeated activity items -->
-                @php
-                  $activities = [
-                    ['name'=>'Ikbal Ramadan',   'action'=>'Ingin Meminjam',     'book'=>'Machine Learning',              'avatar'=>'icon-profil1.png', 'note'=>'',            'type'=>'pinjam'],
-                    ['name'=>'Siti Nurfadila Ilham', 'action'=>'Mengembalikan','book'=>'Cyber Security',                'avatar'=>'icon-profil3.png', 'note'=>'Telat 3 hari','type'=>'telat'],
-                    ['name'=>'Angie Palealu','action'=>'Ingin Meminjam',    'book'=>'Software Engineering',          'avatar'=>'icon-profil2.png', 'note'=>'',            'type'=>'pinjam'],
-                    ['name'=>'Jerome',      'action'=>'Ingin Meminjam',     'book'=>'Kriptografi',                   'avatar'=>'icon-profil4.png', 'note'=>'',            'type'=>'pinjam'],
-                    ['name'=>'Nuriyanti',       'action'=>'Mengembalikan','book'=>'E-bisnis',                      'avatar'=>'icon-profil5.png', 'note'=>'Telat 7 hari','type'=>'telat'],
-                    ['name'=>'Kaysa Dzikirya','action'=>'Menunggu Konfirmasi Peminjaman','book'=>'Pengembangan Perangkat Lunak', 'avatar'=>'icon-profil6.png', 'note'=>'',            'type'=>'kembali'],
-                  ];
-                @endphp
-
-                @foreach($activities as $act)
+                @forelse($activities ?? [] as $act)
                 <div class="flex items-center gap-4 p-3 mb-3 rounded-lg activity-item shadow-sm">
 
-                  <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white/80">
-                    <img src="{{ asset('images/' . $act['avatar']) }}" class="w-full h-full object-cover">
+                  <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white/80 bg-gray-300 flex items-center justify-center">
+                    <span class="text-white font-bold text-sm">{{ strtoupper(substr($act['name'] ?? 'U', 0, 2)) }}</span>
                   </div>
 
                   <div class="flex-1">
                     <div class="text-sm">
-                      <span class="font-semibold">{{ $act['name'] }}</span>
-                      <span class="text-gray-700"> {{ $act['action'] }} Buku 
-                        <span class="font-bold">{{ $act['book'] }}</span>
+                      <span class="font-semibold">{{ $act['name'] ?? 'Unknown' }}</span>
+                      <span class="text-gray-700"> {{ $act['action'] ?? 'Aktivitas' }} Buku 
+                        <span class="font-bold">{{ $act['book'] ?? '-' }}</span>
                       </span>
                     </div>
 
@@ -255,32 +253,41 @@
 
                   <!-- ICON DENGAN DATA ATTRIBUTE UNTUK MODAL -->
                   <div>
-                    @if($act['type'] === 'pinjam')
+                    @php
+                      $actionType = strtolower($act['action'] ?? '');
+                      $isPinjam = strpos($actionType, 'pinjam') !== false || strpos($actionType, 'ingin') !== false;
+                      $isKembali = strpos($actionType, 'kembali') !== false || strpos($actionType, 'mengembalikan') !== false;
+                    @endphp
+                    @if($isPinjam)
                       <img src="{{ asset('images/icon-cekbuku.png') }}" class="w-5 h-5 cursor-pointer" 
-                          data-name="{{ $act['name'] }}" 
-                          data-action="{{ $act['action'] }}" 
-                          data-book="{{ $act['book'] }}" 
-                          data-note="{{ $act['note'] }}" 
+                          data-name="{{ $act['name'] ?? '' }}" 
+                          data-action="{{ $act['action'] ?? '' }}" 
+                          data-book="{{ $act['book'] ?? '' }}" 
+                          data-note="{{ $act['note'] ?? '' }}" 
                           data-type="Pinjam">
-                    @elseif($act['type'] === 'telat')
-                      <img src="{{ asset('images/icon-denda.png') }}" class="w-5 h-5 cursor-pointer" 
-                          data-name="{{ $act['name'] }}" 
-                          data-action="{{ $act['action'] }}" 
-                          data-book="{{ $act['book'] }}" 
-                          data-note="{{ $act['note'] }}" 
-                          data-type="Denda">
-                    @elseif($act['type'] === 'kembali')
+                    @elseif($isKembali)
                       <img src="{{ asset('images/icon-reminder.png') }}" class="w-5 h-5 cursor-pointer" 
-                          data-name="{{ $act['name'] }}" 
-                          data-action="{{ $act['action'] }}" 
-                          data-book="{{ $act['book'] }}" 
-                          data-note="{{ $act['note'] }}" 
+                          data-name="{{ $act['name'] ?? '' }}" 
+                          data-action="{{ $act['action'] ?? '' }}" 
+                          data-book="{{ $act['book'] ?? '' }}" 
+                          data-note="{{ $act['note'] ?? '' }}" 
                           data-type="Reminder">
+                    @else
+                      <img src="{{ asset('images/icon-denda.png') }}" class="w-5 h-5 cursor-pointer" 
+                          data-name="{{ $act['name'] ?? '' }}" 
+                          data-action="{{ $act['action'] ?? '' }}" 
+                          data-book="{{ $act['book'] ?? '' }}" 
+                          data-note="{{ $act['note'] ?? '' }}" 
+                          data-type="Info">
                     @endif
                   </div>
 
                 </div>
-              @endforeach
+                @empty
+                <div class="text-center py-8 text-gray-500">
+                  <p>Tidak ada aktivitas terbaru</p>
+                </div>
+                @endforelse
 
               </div>
             </div>
@@ -310,51 +317,53 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr class="border-t">
-                    <td class="py-3 px-4">Machine Learning</td>
-                    <td class="py-3 px-4">John Manuel</td>
-                    <td class="py-3 px-4">10 Nov 2025</td>
-                    <td class="py-3 px-4 text-amber-600 font-semibold">Dipinjam</td>
-                    <td class="py-3 px-4">
-                      <button class="text-sm text-indigo-600 hover:underline detail-btn"
-                          data-book="Machine Learning"
-                          data-user="John Manuel"
-                          data-date="10 Nov 2025"
-                          data-status="Dipinjam">
-                        Detail
-                      </button>
-                    </td>
-                  </tr>
-                  <tr class="border-t">
-                    <td class="py-3 px-4">Cyber Security</td>
-                    <td class="py-3 px-4">Mahesa Bianca</td>
-                    <td class="py-3 px-4">05 Nov 2025</td>
-                    <td class="py-3 px-4 text-red-600 font-semibold">Terlambat</td>
-                    <td class="py-3 px-4">
-                      <button class="text-sm text-indigo-600 hover:underline detail-btn"
-                          data-book="Cyber Security"
-                          data-user="Mahesa Bianca"
-                          data-date="05 Nov 2025"
-                          data-status="Terlambat">
-                        Detail
-                      </button>
-                    </td>
-                  </tr>
-                  <tr class="border-t">
-                    <td class="py-3 px-4">Software Engineering</td>
-                    <td class="py-3 px-4">Kimberlly Laurr</td>
-                    <td class="py-3 px-4">01 Nov 2025</td>
-                    <td class="py-3 px-4 text-amber-600 font-semibold">Dipinjam</td>
-                    <td class="py-3 px-4">
-                      <button class="text-sm text-indigo-600 hover:underline detail-btn"
-                          data-book="Software Engineering"
-                          data-user="Kimberlly Laurr"
-                          data-date="01 Nov 2025"
-                          data-status="Dipinjam">
-                        Detail
-                      </button>
-                    </td>
-                  </tr>
+                  @forelse($recentLoans ?? [] as $loan)
+                    @php
+                      $statusClass = 'text-gray-600';
+                      $statusText = ucfirst(str_replace('_', ' ', $loan->status));
+                      
+                      if ($loan->status === 'sedang_dipinjam') {
+                          $tanggalJatuhTempo = $loan->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($loan->tanggal_jatuh_tempo) : null;
+                          if ($tanggalJatuhTempo && \Carbon\Carbon::now()->gt($tanggalJatuhTempo)) {
+                              $statusClass = 'text-red-600';
+                              $statusText = 'Terlambat';
+                          } else {
+                              $statusClass = 'text-amber-600';
+                              $statusText = 'Sedang Dipinjam';
+                          }
+                      } elseif ($loan->status === 'dikembalikan') {
+                          $statusClass = 'text-green-600';
+                          $statusText = 'Dikembalikan';
+                      } elseif ($loan->status === 'menunggu_approval') {
+                          $statusClass = 'text-yellow-600';
+                          $statusText = 'Menunggu Approval';
+                      } elseif ($loan->status === 'dapat_diambil') {
+                          $statusClass = 'text-blue-600';
+                          $statusText = 'Dapat Diambil';
+                      }
+                    @endphp
+                    <tr class="border-t">
+                      <td class="py-3 px-4">{{ $loan->buku->judul ?? '-' }}</td>
+                      <td class="py-3 px-4">{{ $loan->pengguna->nama ?? '-' }}</td>
+                      <td class="py-3 px-4">{{ $loan->tanggal_pinjam ? \Carbon\Carbon::parse($loan->tanggal_pinjam)->format('d M Y') : '-' }}</td>
+                      <td class="py-3 px-4 {{ $statusClass }} font-semibold">{{ $statusText }}</td>
+                      <td class="py-3 px-4">
+                        <button class="text-sm text-indigo-600 hover:underline detail-btn"
+                            data-book="{{ $loan->buku->judul ?? '-' }}"
+                            data-user="{{ $loan->pengguna->nama ?? '-' }}"
+                            data-date="{{ $loan->tanggal_pinjam ? \Carbon\Carbon::parse($loan->tanggal_pinjam)->format('d M Y') : '-' }}"
+                            data-status="{{ $statusText }}">
+                          Detail
+                        </button>
+                      </td>
+                    </tr>
+                  @empty
+                    <tr>
+                      <td colspan="5" class="py-8 text-center text-gray-500">
+                        <p>Tidak ada peminjaman terbaru</p>
+                      </td>
+                    </tr>
+                  @endforelse
                 </tbody>
               </table>
             </div>
@@ -369,22 +378,23 @@
 
   <!-- SCRIPTS: Chart -->
   <script>
+    const chartData = @json($chartData ?? []);
     const ctx = document.getElementById('loanChart').getContext('2d');
     const loanChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Januari','Februari','Maret','April','Mei','Juni','Juli'],
+        labels: chartData.map(item => item.month),
         datasets: [
           {
             label: 'Peminjam',
-            data: [40,50,30,35,38,42,43],
+            data: chartData.map(item => item.peminjam),
             backgroundColor: '#3b82f6',
             borderRadius: 6,
             barThickness: 18
           },
           {
             label: 'Pengembalian',
-            data: [30,38,25,30,36,32,24],
+            data: chartData.map(item => item.pengembalian),
             backgroundColor: '#86efac',
             borderRadius: 6,
             barThickness: 18
@@ -669,147 +679,26 @@ document.getElementById('notifPopup').addEventListener('click', function(e) {
     </div>
 </div>
 
-<!-- POPUP PESAN ADMIN -->
-<div id="messagePopup" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl p-6 w-[32rem] max-h-[80vh] overflow-y-auto relative">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-[#A63A2D]">Pesan</h3>
-            <div class="flex gap-2">
-                <button onclick="toggleMessagePopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
-            </div>
-        </div>
-        <div class="mb-4 bg-gray-50 rounded-xl p-3">
-            <p class="text-sm font-semibold text-[#A63A2D] mb-2">Kirim Pesan ke Pengguna</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <select id="recipientSelect" class="border rounded p-2 text-sm md:col-span-1"></select>
-                <input id="composeIsi" type="text" class="border rounded p-2 text-sm md:col-span-2" placeholder="Tulis pesan singkat..." />
-            </div>
-            <div class="flex justify-end mt-2">
-                <button class="px-3 py-1 bg-[#A63A2D] text-white rounded text-xs" onclick="sendMessage()">Kirim</button>
-            </div>
-        </div>
-        <ul id="messageList" class="space-y-3">
-            <li class="p-3 text-center text-gray-500">Memuat pesan...</li>
-        </ul>
-    </div>
-</div>
-
 <script>
-function toggleMessagePopup() {
-    const popup = document.getElementById('messagePopup');
-    popup.classList.toggle('hidden');
-    popup.classList.toggle('flex');
-    if (!popup.classList.contains('hidden')) {
-        loadRecipients();
-        loadMessages();
-    }
-}
-function loadMessages() {
-    fetch('/api/pesan?only_inbox=1', {
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json'
+// ======================================================
+// FUNGSI PROFILE DROPDOWN ADMIN
+// ======================================================
+const adminProfileBtn = document.getElementById('adminProfileBtn');
+const adminProfileDropdown = document.getElementById('adminProfileDropdown');
+
+if (adminProfileBtn && adminProfileDropdown) {
+    adminProfileBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        adminProfileDropdown.classList.toggle('hidden');
+    });
+
+    // Tutup dropdown saat klik di luar
+    document.addEventListener('click', function(e) {
+        if (!adminProfileBtn.contains(e.target) && !adminProfileDropdown.contains(e.target)) {
+            adminProfileDropdown.classList.add('hidden');
         }
-    })
-    .then(res => res.json())
-    .then(data => {
-        const list = document.getElementById('messageList');
-        const badge = document.getElementById('messageBadge');
-        if (badge) {
-            const count = data.unread_count || 0;
-            badge.textContent = count;
-            badge.classList.toggle('hidden', count === 0);
-        }
-        if (Array.isArray(data.data) && data.data.length > 0) {
-            list.innerHTML = data.data.map(m => {
-                const confirmed = m.status === 'confirmed';
-                const status = confirmed ? '<span class="text-green-700 text-xs ml-2">Dikonfirmasi</span>' : '';
-                return `
-                    <li class="p-3 bg-gray-100 rounded-xl shadow hover:shadow-md">
-                        <p class="text-sm font-semibold">Pesan ${status}</p>
-                        <p class="text-sm text-gray-700 mt-1">${m.isi}</p>
-                        <div class="flex justify-end mt-2 text-xs gap-4">
-                            ${!confirmed ? `<button class="text-green-700" onclick="confirmMessage(${m.id})">Konfirmasi</button>` : ''}
-                            <button class="text-blue-700" onclick="replyMessage(${m.id})">Balas</button>
-                        </div>
-                    </li>
-                `;
-            }).join('');
-        } else {
-            list.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada pesan</li>';
-        }
-    })
-    .catch(() => {
-        const list = document.getElementById('messageList');
-        list.innerHTML = '<li class="p-3 text-center text-red-600">Gagal memuat pesan</li>';
     });
 }
-function confirmMessage(id) {
-    fetch(`/api/pesan/${id}/confirm`, {
-        method: 'PUT',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json'
-        }
-    }).then(() => loadMessages());
-}
-function replyMessage(id) {
-    const isi = prompt('Tulis balasan:');
-    if (!isi) return;
-    fetch(`/api/pesan/${id}/reply`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ isi })
-    }).then(() => loadMessages());
-}
-function loadRecipients() {
-    fetch('/api/pengguna', {
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json'
-        }
-    })
-    .then(res => res.json())
-    .then(users => {
-        const sel = document.getElementById('recipientSelect');
-        if (!sel) return;
-        const onlyPengguna = Array.isArray(users) ? users.filter(u => u.peran === 'pengguna') : [];
-        sel.innerHTML = onlyPengguna.map(u => `<option value="${u.id}">${u.nama} (${u.email})</option>`).join('');
-    });
-}
-function sendMessage() {
-    const sel = document.getElementById('recipientSelect');
-    const isi = document.getElementById('composeIsi');
-    if (!sel || !isi) return;
-    const penerima_id = sel.value;
-    const text = isi.value.trim();
-    if (!penerima_id || !text) return alert('Pilih penerima dan isi pesan');
-    fetch('/api/pesan', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ penerima_id, isi: text })
-    })
-    .then(res => {
-        if (!res.ok) throw new Error();
-        isi.value = '';
-        loadMessages();
-    })
-    .catch(() => alert('Gagal mengirim pesan'));
-}
-document.addEventListener('DOMContentLoaded', () => {
-    loadMessages();
-});
-document.getElementById('messagePopup')?.addEventListener('click', function(e) {
-    if (e.target === this) toggleMessagePopup();
-});
 </script>
 
 </body>

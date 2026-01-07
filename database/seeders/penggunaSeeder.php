@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\Pengguna;
 use Illuminate\Support\Facades\Hash;
 
 class penggunaSeeder extends Seeder
@@ -34,26 +34,15 @@ class penggunaSeeder extends Seeder
      */
     private function createOrUpdateDefaultUser($nama, $email, $password, $peran)
     {
-        $check = DB::table('pengguna')->where('email', $email)->exists();
-
-        if (!$check) {
-            DB::table('pengguna')->insert([
+        // Gunakan updateOrCreate untuk memastikan data selalu ter-update
+        Pengguna::updateOrCreate(
+            ['email' => $email], // Kondisi pencarian
+            [
                 'nama'       => $nama,
                 'email'      => $email,
-                'kata_sandi' => Hash::make($password),
+                'kata_sandi' => $password, // Model akan otomatis hash via mutator
                 'peran'      => $peran,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        } else {
-            DB::table('pengguna')
-                ->where('email', $email)
-                ->update([
-                    'nama'       => $nama,
-                    'kata_sandi' => Hash::make($password),
-                    'peran'      => $peran,
-                    'updated_at' => now(),
-                ]);
-        }
+            ]
+        );
     }
 }

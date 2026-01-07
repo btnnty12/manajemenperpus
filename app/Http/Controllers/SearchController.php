@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Buku;
 use App\Models\LogPencarian;
+use App\Models\Activity;
 use App\Services\StringMatching;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,8 @@ class SearchController extends Controller
             'case'     => 'boolean',
             'per_page' => 'integer|min:1|max:100',
             'page'     => 'integer|min:1',
+            'genre'    => 'nullable|string',
+            'tahun'    => 'nullable|integer|min:1900|max:2100',
         ]);
 
         if ($validator->fails()) {
@@ -38,6 +41,8 @@ class SearchController extends Controller
             $caseInsensitive = filter_var($validated['case'] ?? true, FILTER_VALIDATE_BOOL);
             $perPage         = (int) ($validated['per_page'] ?? 10);
             $currentPage     = (int) ($validated['page'] ?? 1);
+            $filterGenre     = $validated['genre'] ?? null;
+            $filterTahun     = $validated['tahun'] ?? null;
 
             // ======================================================
             // START TIMER - untuk hitung waktu proses
@@ -47,14 +52,25 @@ class SearchController extends Controller
             // ======================================================
             // Pre-filter database
             // ======================================================
-            $books = Buku::query()
+            $booksQuery = Buku::query()
                 ->select(['id', 'judul', 'penulis', 'genre', 'tahun_terbit', 'deskripsi'])
                 ->where(function ($q) use ($searchQuery) {
                     $q->where('judul', 'LIKE', "%$searchQuery%")
                       ->orWhere('penulis', 'LIKE', "%$searchQuery%")
                       ->orWhere('deskripsi', 'LIKE', "%$searchQuery%");
-                })
-                ->get();
+                });
+
+            // Apply filter genre jika ada
+            if ($filterGenre) {
+                $booksQuery->where('genre', $filterGenre);
+            }
+
+            // Apply filter tahun jika ada
+            if ($filterTahun) {
+                $booksQuery->where('tahun_terbit', '<=', $filterTahun);
+            }
+
+            $books = $booksQuery->get();
 
             $results = [];
 
@@ -114,6 +130,19 @@ class SearchController extends Controller
                     'jumlah_hasil'     => $total,
                     'algorithm'        => $algorithm,
                     'process_time_ms'  => $processTime,
+                ]);
+
+                // Log aktivitas pencarian
+                Activity::create([
+                    'pengguna_id' => Auth::id(),
+                    'type' => 'cari_buku',
+                    'description' => "Mencari buku dengan kata kunci: {$searchQuery}",
+                    'meta' => [
+                        'keyword' => $searchQuery,
+                        'jumlah_hasil' => $total,
+                        'algorithm' => $algorithm,
+                        'process_time_ms' => $processTime,
+                    ],
                 ]);
             }
 

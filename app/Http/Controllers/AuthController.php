@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Pengguna;
+use App\Models\Activity;
 
 class AuthController extends Controller
 {
@@ -16,10 +17,14 @@ class AuthController extends Controller
             'kata_sandi' => 'required'
         ]);
 
-        // Cari user berdasarkan email
-        $user = Pengguna::where('email', $request->email)->first();
+        // Cari user berdasarkan email (case-insensitive)
+        $email = strtolower(trim($request->email));
+        $user = Pengguna::whereRaw('LOWER(email) = ?', [$email])->first();
 
         if (!$user) {
+            // Debug: log untuk melihat email yang dicari
+            \Log::info('Login attempt failed - Email not found', ['email' => $request->email]);
+            
             return back()->withErrors([
                 'email' => 'Email tidak ditemukan!'
             ])->withInput($request->only('email'));
@@ -39,11 +44,23 @@ class AuthController extends Controller
                 'role'  => $user->peran,
             ]);
 
+            // Log aktivitas login
+            Activity::create([
+                'pengguna_id' => $user->id,
+                'type' => 'login',
+                'description' => 'User berhasil login ke sistem',
+                'meta' => [
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ],
+            ]);
+
             // Redirect sesuai peran
             switch ($user->peran) {
                 case 'admin':
                     return redirect()->route('admin')->with('success', 'Selamat datang Admin!');
                 case 'staff':
+                    // Gunakan route staff.dashboard yang lebih spesifik
                     return redirect()->route('staff.dashboard')->with('success', 'Selamat datang Staff!');
                 case 'pengguna':
                     return redirect()->route('home')->with('success', 'Selamat datang!');

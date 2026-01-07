@@ -20,6 +20,8 @@ class Pengguna extends Authenticatable
         'email',
         'kata_sandi',
         'peran',
+        'foto',
+        'phone',
     ];
 
     protected $hidden = [
@@ -27,7 +29,30 @@ class Pengguna extends Authenticatable
         'remember_token',
     ];
 
-    protected $guarded = [];
+    // Method untuk mendapatkan URL foto profil
+    public function getFotoUrlAttribute()
+    {
+        $foto = $this->attributes['foto'] ?? null;
+        if ($foto) {
+            // Pastikan path sudah benar
+            if (file_exists(storage_path('app/public/' . $foto))) {
+                return asset('storage/' . $foto);
+            }
+        }
+        return null;
+    }
+    
+    // Accessor langsung untuk foto
+    public function getFotoAttribute($value)
+    {
+        return $value;
+    }
+
+    // Accessor untuk profile_photo (kompatibilitas dengan view yang sudah ada)
+    public function getProfilePhotoAttribute()
+    {
+        return $this->attributes['foto'] ?? null;
+    }
 
     /**
      * Gunakan kolom kata_sandi untuk autentikasi
@@ -57,10 +82,16 @@ class Pengguna extends Authenticatable
     {
         return $this->hasMany(Pinjaman::class, 'pengguna_id');
     }
+    
     public function favorites(): BelongsToMany
-{
-    return $this->belongsToMany(\App\Models\Buku::class, 'favorites', 'user_id', 'book_id');
-}
+    {
+        return $this->belongsToMany(\App\Models\Buku::class, 'favorites', 'user_id', 'book_id');
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(Activity::class, 'pengguna_id');
+    }
     // HELPER ROLE
     public function isAdmin()
     {

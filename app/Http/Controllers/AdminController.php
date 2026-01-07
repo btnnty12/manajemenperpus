@@ -24,12 +24,32 @@ class AdminController extends Controller
             ->limit(10)
             ->get()
             ->map(function ($p) {
+                $action = 'Meminjam Buku';
+                $note = '';
+                
+                if ($p->status === 'menunggu_approval') {
+                    $action = 'Menunggu Konfirmasi Peminjaman';
+                } elseif ($p->status === 'dapat_diambil') {
+                    $action = 'Buku Dapat Diambil';
+                } elseif ($p->status === 'dikembalikan') {
+                    $action = 'Mengembalikan Buku';
+                    if ($p->denda && $p->denda > 0) {
+                        $note = 'Denda: Rp ' . number_format($p->denda, 0, ',', '.');
+                    }
+                } elseif ($p->status === 'sedang_dipinjam') {
+                    $tanggalJatuhTempo = $p->tanggal_jatuh_tempo ? Carbon::parse($p->tanggal_jatuh_tempo) : null;
+                    if ($tanggalJatuhTempo && Carbon::now()->gt($tanggalJatuhTempo)) {
+                        $hariTelat = Carbon::now()->diffInDays($tanggalJatuhTempo);
+                        $note = 'Telat ' . $hariTelat . ' hari';
+                    }
+                }
+                
                 return [
-                    'name' => $p->pengguna->nama,
-                    'action' => $p->status === 'dikembalikan' ? 'Mengembalikan Buku' : 'Meminjam Buku',
-                    'book' => $p->buku->judul,
+                    'name' => $p->pengguna->nama ?? 'Unknown',
+                    'action' => $action,
+                    'book' => $p->buku->judul ?? 'Unknown',
                     'avatar' => 'avatar-1.png',
-                    'note' => '',
+                    'note' => $note,
                     'created_at' => $p->created_at->format('Y-m-d H:i:s'),
                 ];
             });
@@ -65,14 +85,16 @@ class AdminController extends Controller
             $start = Carbon::create($currentYear, $i, 1)->startOfMonth();
             $end = Carbon::create($currentYear, $i, 1)->endOfMonth();
 
-            // Gunakan created_at untuk estimasi peminjaman (kolom tanggal_pinjam tidak tersedia)
-            $peminjam = Pinjaman::where('status', '!=', 'dikembalikan')
-                ->whereBetween('created_at', [$start, $end])
+            // Gunakan tanggal_pinjam untuk peminjaman
+            $peminjam = Pinjaman::whereIn('status', ['sedang_dipinjam', 'dapat_diambil'])
+                ->whereNotNull('tanggal_pinjam')
+                ->whereBetween('tanggal_pinjam', [$start->toDateString(), $end->toDateString()])
                 ->count();
 
-            // Gunakan updated_at untuk estimasi pengembalian
+            // Gunakan tanggal_kembali untuk pengembalian
             $pengembalian = Pinjaman::where('status', 'dikembalikan')
-                ->whereBetween('updated_at', [$start, $end])
+                ->whereNotNull('tanggal_kembali')
+                ->whereBetween('tanggal_kembali', [$start->toDateString(), $end->toDateString()])
                 ->count();
 
             $data[] = [

@@ -119,10 +119,6 @@
     <!-- TOPBAR -->
     <div class="flex justify-end items-center w-full py-4 px-10 text-white space-x-6">
         <div class="border-l border-white h-6"></div>
-        <button id="messageBtn" onclick="toggleMessagePopup()" class="relative">
-            <x-icon name="email" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
-            <span id="messageBadge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
-        </button>
         <button id="notifBtn" onclick="toggleNotifPopup()" class="relative">
             <x-icon name="notification" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
             <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
@@ -143,19 +139,19 @@
         <!-- STATISTIK -->
         <div class="stats-row">
             <div class="stat-card">
-                <h2 class="text-4xl font-bold">255</h2>
-                <p>Total Buku</p>
+                <h2 class="text-4xl font-bold">{{ $totalDipinjam ?? 0 }}</h2>
+                <p>Total Peminjaman</p>
             </div>
             <div class="stat-card">
-                <h2 class="text-4xl font-bold">150</h2>
+                <h2 class="text-4xl font-bold">{{ $sedangDipinjam ?? 0 }}</h2>
                 <p>Sedang Dipinjam</p>
             </div>
             <div class="stat-card">
-                <h2 class="text-4xl font-bold">23</h2>
+                <h2 class="text-4xl font-bold">{{ $terlambat ?? 0 }}</h2>
                 <p>Terlambat</p>
             </div>
             <div class="stat-card">
-                <h2 class="text-4xl font-bold">Rp. 320.000</h2>
+                <h2 class="text-4xl font-bold">Rp {{ number_format($totalDenda ?? 0, 0, ',', '.') }}</h2>
                 <p>Total Denda Terkumpul</p>
             </div>
         </div>
@@ -165,9 +161,11 @@
             <input type="text" id="searchInput" placeholder="Search" class="filter-search shadow p-3 rounded-lg" onkeyup="filterTable()">
             <select id="statusFilter" class="filter-select shadow" onchange="filterTable()">
                 <option value="">Semua Status</option>
-                <option value="Dipinjam">Dipinjam</option>
-                <option value="Dikembalikan">Dikembalikan</option>
-                <option value="Terlambat">Terlambat</option>
+                <option value="menunggu_approval">Menunggu Approval</option>
+                <option value="dapat_diambil">Dapat Diambil</option>
+                <option value="sedang_dipinjam">Sedang Dipinjam</option>
+                <option value="terlambat">Terlambat</option>
+                <option value="dikembalikan">Dikembalikan</option>
             </select>
             <input type="date" id="dateFilter" class="filter-select shadow" onchange="filterTable()">
             <button class="btn-search" onclick="filterTable()">Search</button>
@@ -189,92 +187,105 @@
                     <th class="px-10 py-5">Aksi</th>
                 </tr>
             </thead>
-            <tbody>
-                <tr class="border-b pinjaman-row" data-nama="simon sinek" data-judul="pemrograman web dengan" data-status="Dikembalikan" data-tanggal="2025-11-01">
-                    <td class="px-6 py-3">TRX-001</td>
-                    <td class="px-6 py-3">Simon Sinek</td>
-                    <td class="px-6 py-3">Pemrograman Web dengan ...</td>
-                    <td class="px-6 py-3">01/11/2025</td>
-                    <td class="px-6 py-3">08/11/2025</td>
-                    <td class="px-6 py-3 text-green-600 font-semibold">Dikembalikan</td>
-                    <td class="px-6 py-3">-</td>
-                    <td class="px-6 py-3 flex gap-3">
-                        <img src="{{ asset('icons/search.png') }}" class="w-5">
-                    </td>
-                </tr>
-                <tr class="border-b pinjaman-row" data-nama="cal newport" data-judul="manajemen proyek ti" data-status="Terlambat" data-tanggal="2025-11-01">
-                    <td class="px-6 py-3">TRX-002</td>
-                    <td class="px-6 py-3">Cal Newport</td>
-                    <td class="px-6 py-3">Manajemen Proyek TI</td>
-                    <td class="px-6 py-3">01/11/2025</td>
-                    <td class="px-6 py-3">10/11/2025</td>
-                    <td class="px-6 py-3 text-red-600 font-semibold">Terlambat</td>
-                    <td class="px-6 py-3">Rp. 10.000</td>
-                    <td class="px-6 py-3 flex gap-3">
-                        <img src="{{ asset('icons/search.png') }}" class="w-5">
-                    </td>
-                </tr>
-                <tr class="border-b pinjaman-row" data-nama="yuval noah harari" data-judul="psikologi remaja modern" data-status="Dikembalikan" data-tanggal="2025-11-01">
-                    <td class="px-6 py-3">TRX-003</td>
-                    <td class="px-6 py-3">Yuval Noah Harari</td>
-                    <td class="px-6 py-3">Psikologi Remaja Modern</td>
-                    <td class="px-6 py-3">01/11/2025</td>
-                    <td class="px-6 py-3">08/11/2025</td>
-                    <td class="px-6 py-3 text-green-600 font-semibold">Dikembalikan</td>
-                    <td class="px-6 py-3">-</td>
-                    <td class="px-6 py-3 flex gap-3"><img src="{{ asset('icons/search.png') }}" class="w-5"></td>
-                </tr>
-                <tr class="border-b pinjaman-row" data-nama="malcolm gladwell" data-judul="dasar-dasar akuntansi" data-status="Dipinjam" data-tanggal="2025-11-01">
-                    <td class="px-6 py-3">TRX-004</td>
-                    <td class="px-6 py-3">Malcolm Gladwell</td>
-                    <td class="px-6 py-3">Dasar-Dasar Akuntansi</td>
-                    <td class="px-6 py-3">01/11/2025</td>
-                    <td class="px-6 py-3">-</td>
-                    <td class="px-6 py-3 text-blue-600 font-semibold">Dipinjam</td>
-                    <td class="px-6 py-3">-</td>
-                    <td class="px-6 py-3 flex gap-3"><img src="{{ asset('icons/search.png') }}" class="w-5"></td>
-                </tr>
-                <tr class="border-b pinjaman-row" data-nama="cal newport" data-judul="manajemen proyek ti" data-status="Terlambat" data-tanggal="2025-11-01">
-                    <td class="px-6 py-3">TRX-005</td>
-                    <td class="px-6 py-3">Cal Newport</td>
-                    <td class="px-6 py-3">Manajemen Proyek TI</td>
-                    <td class="px-6 py-3">01/11/2025</td>
-                    <td class="px-6 py-3">10/11/2025</td>
-                    <td class="px-6 py-3 text-red-600 font-semibold">Terlambat</td>
-                    <td class="px-6 py-3">Rp. 10.000</td>
-                    <td class="px-6 py-3 flex gap-3"><img src="{{ asset('icons/search.png') }}" class="w-5"></td>
-                </tr>
-                <tr class="border-b pinjaman-row" data-nama="robert t. kiyosaki" data-judul="statistika untuk penelitian" data-status="Dikembalikan" data-tanggal="2025-11-01">
-                    <td class="px-6 py-3">TRX-006</td>
-                    <td class="px-6 py-3">Robert T. Kiyosaki</td>
-                    <td class="px-6 py-3">Statistika untuk Penelitian</td>
-                    <td class="px-6 py-3">01/11/2025</td>
-                    <td class="px-6 py-3">08/11/2025</td>
-                    <td class="px-6 py-3 text-green-600 font-semibold">Dikembalikan</td>
-                    <td class="px-6 py-3">-</td>
-                    <td class="px-6 py-3 flex gap-3"><img src="{{ asset('icons/search.png') }}" class="w-5"></td>
-                </tr>
-                <tr class="border-b pinjaman-row" data-nama="stephen r. covey" data-judul="etika profesi dan hukum siswa" data-status="Dipinjam" data-tanggal="2025-11-01">
-                    <td class="px-6 py-3">TRX-007</td>
-                    <td class="px-6 py-3">Stephen R. Covey</td>
-                    <td class="px-6 py-3">Etika Profesi dan Hukum Siswa</td>
-                    <td class="px-6 py-3">01/11/2025</td>
-                    <td class="px-6 py-3">-</td>
-                    <td class="px-6 py-3 text-blue-600 font-semibold">Dipinjam</td>
-                    <td class="px-6 py-3">-</td>
-                    <td class="px-6 py-3 flex gap-3"><img src="{{ asset('icons/search.png') }}" class="w-5"></td>
-                </tr>
-                <tr class="border-b pinjaman-row" data-nama="haruki murakami" data-judul="desain ui/ux untuk pemula" data-status="Dikembalikan" data-tanggal="2025-11-01">
-                    <td class="px-6 py-3">TRX-008</td>
-                    <td class="px-6 py-3">Haruki Murakami</td>
-                    <td class="px-6 py-3">Desain UI/UX untuk Pemula</td>
-                    <td class="px-6 py-3">01/11/2025</td>
-                    <td class="px-6 py-3">15/11/2025</td>
-                    <td class="px-6 py-3 text-green-600 font-semibold">Dikembalikan</td>
-                    <td class="px-6 py-3">-</td>
-                    <td class="px-6 py-3 flex gap-3"><img src="{{ asset('icons/search.png') }}" class="w-5"></td>
-                </tr>
-                <!-- Tambahkan row lain sesuai data -->
+            <tbody id="pinjamanTableBody">
+                @forelse($pinjaman ?? [] as $p)
+                    @php
+                        $tanggalJatuhTempo = $p->tanggal_jatuh_tempo ? Carbon\Carbon::parse($p->tanggal_jatuh_tempo) : null;
+                        $hariIni = Carbon\Carbon::now();
+                        $isTerlambat = false;
+                        
+                        if ($p->status === 'menunggu_approval') {
+                            $statusDisplay = 'Menunggu Approval';
+                            $statusClass = 'text-yellow-600';
+                        } elseif ($p->status === 'dapat_diambil') {
+                            $statusDisplay = 'Dapat Diambil';
+                            $statusClass = 'text-blue-600';
+                        } elseif ($p->status === 'sedang_dipinjam' && $tanggalJatuhTempo) {
+                            if ($hariIni->gt($tanggalJatuhTempo)) {
+                                $statusDisplay = 'Terlambat';
+                                $statusClass = 'text-red-600';
+                                $isTerlambat = true;
+                            } else {
+                                $statusDisplay = 'Sedang Dipinjam';
+                                $statusClass = 'text-amber-600';
+                            }
+                        } elseif ($p->status === 'dikembalikan') {
+                            $statusDisplay = 'Dikembalikan';
+                            $statusClass = 'text-green-600';
+                        } else {
+                            $statusDisplay = ucfirst(str_replace('_', ' ', $p->status));
+                            $statusClass = 'text-gray-600';
+                        }
+                        
+                        $dataStatus = $isTerlambat ? 'terlambat' : $p->status;
+                    @endphp
+                    <tr class="border-b pinjaman-row" 
+                        data-nama="{{ strtolower($p->pengguna->nama ?? '') }}" 
+                        data-judul="{{ strtolower($p->buku->judul ?? '') }}"
+                        data-status="{{ $dataStatus }}"
+                        data-tanggal="{{ $p->tanggal_pinjam ? Carbon\Carbon::parse($p->tanggal_pinjam)->format('Y-m-d') : '' }}">
+                        <td class="px-6 py-3">P-{{ str_pad($p->id, 6, '0', STR_PAD_LEFT) }}</td>
+                        <td class="px-6 py-3">{{ $p->pengguna->nama ?? '-' }}</td>
+                        <td class="px-6 py-3">{{ $p->buku->judul ?? '-' }}</td>
+                        <td class="px-6 py-3">{{ $p->tanggal_pinjam ? Carbon\Carbon::parse($p->tanggal_pinjam)->format('d/m/Y') : '-' }}</td>
+                        <td class="px-6 py-3">{{ $p->tanggal_kembali ? Carbon\Carbon::parse($p->tanggal_kembali)->format('d/m/Y') : '-' }}</td>
+                        <td class="px-6 py-3 {{ $statusClass }} font-semibold">{{ $statusDisplay }}</td>
+                        <td class="px-6 py-3">
+                            @if($p->denda && $p->denda > 0)
+                                Rp {{ number_format($p->denda, 0, ',', '.') }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td class="px-6 py-3">
+                            <div class="flex gap-2 items-center">
+                                @if($p->status === 'menunggu_approval')
+                                    <button onclick="approvePinjaman({{ $p->id }})" 
+                                            class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition font-semibold"
+                                            title="Setujui peminjaman">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                    <button onclick="rejectPinjaman({{ $p->id }})" 
+                                            class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition font-semibold"
+                                            title="Tolak peminjaman">
+                                        <i class="fas fa-times"></i> Tolak
+                                    </button>
+                                @elseif($p->status === 'dapat_diambil')
+                                    <button onclick="confirmAmbil({{ $p->id }})" 
+                                            class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition font-semibold"
+                                            title="Konfirmasi buku sudah diambil">
+                                        <i class="fas fa-check-circle"></i> Konfirmasi Ambil
+                                    </button>
+                                    <button onclick="showDetail({{ $p->id }}, '{{ addslashes($p->pengguna->nama ?? '') }}', '{{ addslashes($p->buku->judul ?? '') }}', '{{ $p->tanggal_pinjam ? Carbon\Carbon::parse($p->tanggal_pinjam)->format('d/m/Y') : '-' }}', '{{ $p->tanggal_jatuh_tempo ? Carbon\Carbon::parse($p->tanggal_jatuh_tempo)->format('d/m/Y') : '-' }}', '{{ $statusDisplay }}', '{{ $p->denda ?? 0 }}')" 
+                                            class="bg-gray-600 text-white px-3 py-1 rounded text-xs hover:bg-gray-700 transition"
+                                            title="Lihat detail">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                @else
+                                    <button onclick="showDetail({{ $p->id }}, '{{ addslashes($p->pengguna->nama ?? '') }}', '{{ addslashes($p->buku->judul ?? '') }}', '{{ $p->tanggal_pinjam ? Carbon\Carbon::parse($p->tanggal_pinjam)->format('d/m/Y') : '-' }}', '{{ $p->tanggal_jatuh_tempo ? Carbon\Carbon::parse($p->tanggal_jatuh_tempo)->format('d/m/Y') : '-' }}', '{{ $statusDisplay }}', '{{ $p->denda ?? 0 }}')" 
+                                            class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition"
+                                            title="Lihat detail">
+                                        <i class="fas fa-info-circle"></i> Detail
+                                    </button>
+                                    @if($p->status === 'sedang_dipinjam' && !$isTerlambat)
+                                        <button onclick="returnBook({{ $p->id }})" 
+                                                class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition"
+                                                title="Konfirmasi pengembalian">
+                                            <i class="fas fa-undo"></i> Kembalikan
+                                        </button>
+                                    @endif
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                            <p class="text-lg">Tidak ada data peminjaman</p>
+                            <p class="text-sm mt-2">Belum ada peminjaman yang tercatat dalam sistem.</p>
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
         <div id="noResults" class="hidden text-center py-8 text-gray-500">
@@ -285,6 +296,53 @@
     <!-- PAGINATION -->
     <div id="paginationContainer" class="flex items-center justify-center space-x-4 mt-6">
         <!-- Pagination akan di-generate oleh JavaScript -->
+    </div>
+</div>
+
+<!-- MODAL DETAIL -->
+<div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-lg p-6 w-96 max-w-[90vw] relative">
+        <button onclick="closeDetail()" class="absolute right-4 top-3 text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+        <h2 class="text-xl font-bold mb-4 text-[#b54a38]">Detail Peminjaman</h2>
+        <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+                <span class="font-semibold text-gray-700">ID Transaksi:</span>
+                <span id="detailId" class="text-gray-900">-</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-semibold text-gray-700">Nama Anggota:</span>
+                <span id="detailNama" class="text-gray-900">-</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-semibold text-gray-700">Judul Buku:</span>
+                <span id="detailJudul" class="text-gray-900 text-right max-w-[200px]">-</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-semibold text-gray-700">Tanggal Pinjam:</span>
+                <span id="detailTglPinjam" class="text-gray-900">-</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-semibold text-gray-700">Tanggal Jatuh Tempo:</span>
+                <span id="detailTglJatuhTempo" class="text-gray-900">-</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-semibold text-gray-700">Tanggal Kembali:</span>
+                <span id="detailTglKembali" class="text-gray-900">-</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-semibold text-gray-700">Status:</span>
+                <span id="detailStatus" class="text-gray-900 font-semibold">-</span>
+            </div>
+            <div class="flex justify-between border-t pt-2">
+                <span class="font-semibold text-gray-700">Denda:</span>
+                <span id="detailDenda" class="text-gray-900">-</span>
+            </div>
+        </div>
+        <div class="mt-4 flex justify-end">
+            <button onclick="closeDetail()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                Tutup
+            </button>
+        </div>
     </div>
 </div>
 
@@ -511,16 +569,156 @@ function executeSearch() {
     });
 
     // Tampilkan pesan jika tidak ada hasil
-    if (noResults) {
-        if (visibleCount === 0) {
+    const tableBody = document.getElementById('pinjamanTableBody');
+    if (visibleCount === 0) {
+        if (noResults) {
             noResults.classList.remove('hidden');
-        } else {
+            noResults.innerHTML = '<p class="text-lg font-semibold">Tidak ada data peminjaman yang ditemukan</p><p class="text-sm mt-2 text-gray-400">Coba ubah filter atau kata kunci pencarian Anda.</p>';
+        }
+        // Sembunyikan semua row
+        rows.forEach(row => row.style.display = 'none');
+    } else {
+        if (noResults) {
             noResults.classList.add('hidden');
         }
     }
     
     // Update pagination setelah filter
     updatePaginationPeminjaman();
+}
+
+// ======================================================
+// FUNGSI APPROVE & REJECT PINJAMAN
+// ======================================================
+function approvePinjaman(id) {
+    if (!confirm('Apakah Anda yakin ingin menyetujui peminjaman ini?')) {
+        return;
+    }
+    
+    fetch(`/api/pinjaman/${id}/approve`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Peminjaman berhasil disetujui!');
+            location.reload();
+        } else {
+            alert('Gagal menyetujui peminjaman: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menyetujui peminjaman');
+    });
+}
+
+function rejectPinjaman(id) {
+    if (!confirm('Apakah Anda yakin ingin menolak peminjaman ini? Peminjaman akan dihapus dari sistem.')) {
+        return;
+    }
+    
+    fetch(`/api/pinjaman/${id}/reject`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Peminjaman berhasil ditolak!');
+            location.reload();
+        } else {
+            alert('Gagal menolak peminjaman: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menolak peminjaman');
+    });
+}
+
+function showDetail(id, nama, judul, tglPinjam, tglJatuhTempo, status, denda) {
+    document.getElementById('detailId').textContent = 'P-' + String(id).padStart(6, '0');
+    document.getElementById('detailNama').textContent = nama || '-';
+    document.getElementById('detailJudul').textContent = judul || '-';
+    document.getElementById('detailTglPinjam').textContent = tglPinjam || '-';
+    document.getElementById('detailTglJatuhTempo').textContent = tglJatuhTempo || '-';
+    document.getElementById('detailTglKembali').textContent = '-';
+    document.getElementById('detailStatus').textContent = status || '-';
+    document.getElementById('detailDenda').textContent = denda > 0 ? 'Rp ' + parseInt(denda).toLocaleString('id-ID') : '-';
+    
+    document.getElementById('detailModal').classList.remove('hidden');
+    document.getElementById('detailModal').classList.add('flex');
+}
+
+function closeDetail() {
+    document.getElementById('detailModal').classList.add('hidden');
+    document.getElementById('detailModal').classList.remove('flex');
+}
+
+function confirmAmbil(id) {
+    if (!confirm('Apakah Anda yakin buku sudah diambil oleh peminjam?')) {
+        return;
+    }
+    
+    fetch(`/api/pinjaman/${id}/confirm-taken`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Status berhasil diupdate! Buku sedang dipinjam.');
+            location.reload();
+        } else {
+            alert('Gagal mengupdate status: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat mengupdate status');
+    });
+}
+
+function returnBook(id) {
+    if (!confirm('Apakah Anda yakin buku sudah dikembalikan?')) {
+        return;
+    }
+    
+    fetch(`/api/pinjaman/${id}/return`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success || data.message) {
+            alert('Buku berhasil dikembalikan!');
+            location.reload();
+        } else {
+            alert('Gagal mengembalikan buku: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat mengembalikan buku');
+    });
 }
 
 // ======================================================
@@ -746,148 +944,6 @@ document.getElementById('notifPopup').addEventListener('click', function(e) {
     </div>
 </div>
 
-<!-- POPUP PESAN -->
-<div id="messagePopup" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl p-6 w-[32rem] max-h-[80vh] overflow-y-auto relative">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-[#A63A2D]">Pesan</h3>
-            <div class="flex gap-2">
-                <button onclick="toggleMessagePopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
-            </div>
-        </div>
-        <div class="mb-4 bg-gray-50 rounded-xl p-3">
-            <p class="text-sm font-semibold text-[#A63A2D] mb-2">Kirim Pesan ke Pengguna</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <select id="recipientSelect" class="border rounded p-2 text-sm md:col-span-1"></select>
-                <input id="composeIsi" type="text" class="border rounded p-2 text-sm md:col-span-2" placeholder="Tulis pesan singkat..." />
-            </div>
-            <div class="flex justify-end mt-2">
-                <button class="px-3 py-1 bg-[#A63A2D] text-white rounded text-xs" onclick="sendMessage()">Kirim</button>
-            </div>
-        </div>
-        <ul id="messageList" class="space-y-3">
-            <li class="p-3 text-center text-gray-500">Memuat pesan...</li>
-        </ul>
-    </div>
-</div>
-
-<script>
-function toggleMessagePopup() {
-    const popup = document.getElementById('messagePopup');
-    popup.classList.toggle('hidden');
-    popup.classList.toggle('flex');
-    if (!popup.classList.contains('hidden')) {
-        loadRecipients();
-        loadMessages();
-    }
-}
-function loadMessages() {
-    fetch('/api/pesan?only_inbox=1', {
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json'
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        const list = document.getElementById('messageList');
-        const badge = document.getElementById('messageBadge');
-        if (badge) {
-            const count = data.unread_count || 0;
-            badge.textContent = count;
-            badge.classList.toggle('hidden', count === 0);
-        }
-        if (Array.isArray(data.data) && data.data.length > 0) {
-            list.innerHTML = data.data.map(m => {
-                const confirmed = m.status === 'confirmed';
-                const status = confirmed ? '<span class="text-green-700 text-xs ml-2">Dikonfirmasi</span>' : '';
-                return `
-                    <li class="p-3 bg-gray-100 rounded-xl shadow hover:shadow-md">
-                        <p class="text-sm font-semibold">Pesan ${status}</p>
-                        <p class="text-sm text-gray-700 mt-1">${m.isi}</p>
-                        <div class="flex justify-end mt-2 text-xs gap-4">
-                            ${!confirmed ? `<button class="text-green-700" onclick="confirmMessage(${m.id})">Konfirmasi</button>` : ''}
-                            <button class="text-blue-700" onclick="replyMessage(${m.id})">Balas</button>
-                        </div>
-                    </li>
-                `;
-            }).join('');
-        } else {
-            list.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada pesan</li>';
-        }
-    })
-    .catch(() => {
-        const list = document.getElementById('messageList');
-        list.innerHTML = '<li class="p-3 text-center text-red-600">Gagal memuat pesan</li>';
-    });
-}
-function confirmMessage(id) {
-    fetch(`/api/pesan/${id}/confirm`, {
-        method: 'PUT',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json'
-        }
-    }).then(() => loadMessages());
-}
-function replyMessage(id) {
-    const isi = prompt('Tulis balasan:');
-    if (!isi) return;
-    fetch(`/api/pesan/${id}/reply`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ isi })
-    }).then(() => loadMessages());
-}
-function loadRecipients() {
-    fetch('/api/pengguna', {
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json'
-        }
-    })
-    .then(res => res.json())
-    .then(users => {
-        const sel = document.getElementById('recipientSelect');
-        if (!sel) return;
-        const onlyPengguna = Array.isArray(users) ? users.filter(u => u.peran === 'pengguna') : [];
-        sel.innerHTML = onlyPengguna.map(u => `<option value="${u.id}">${u.nama} (${u.email})</option>`).join('');
-    });
-}
-function sendMessage() {
-    const sel = document.getElementById('recipientSelect');
-    const isi = document.getElementById('composeIsi');
-    if (!sel || !isi) return;
-    const penerima_id = sel.value;
-    const text = isi.value.trim();
-    if (!penerima_id || !text) return alert('Pilih penerima dan isi pesan');
-    fetch('/api/pesan', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ penerima_id, isi: text })
-    })
-    .then(res => {
-        if (!res.ok) throw new Error();
-        isi.value = '';
-        loadMessages();
-    })
-    .catch(() => alert('Gagal mengirim pesan'));
-}
-document.addEventListener('DOMContentLoaded', () => {
-    loadMessages();
-});
-document.getElementById('messagePopup')?.addEventListener('click', function(e) {
-    if (e.target === this) toggleMessagePopup();
-});
-</script>
 
 </body>
 </html>

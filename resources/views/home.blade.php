@@ -88,16 +88,10 @@
             <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
         </button>
 
-        <!-- MESSAGE BUTTON -->
-        <button id="msgBtn" class="text-2xl hover:opacity-80 relative">
-            ✉️
-            <span id="msgBadge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
-        </button>
-
         <div id="profileBtn"
      class="bg-blue-500 w-10 h-10 rounded-full text-white flex items-center justify-center font-bold cursor-pointer overflow-hidden">
-    @if(Auth::check() && Auth::user()->profile_photo)
-        <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" class="w-full h-full object-cover">
+    @if(Auth::check() && Auth::user()->foto)
+        <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}'">
     @else
         {{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}
     @endif
@@ -142,21 +136,12 @@
         </div>
     </div>
 
-    <div id="msgPopup" class="hidden absolute top-12 right-20 w-96 bg-white shadow-xl rounded-2xl p-5 z-50">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="font-bold text-lg">Pesan</h3>
-            <button onclick="msgPopup.classList.add('hidden')" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
-        </div>
-        <ul id="messageList" class="space-y-4 max-h-80 overflow-y-auto pr-1">
-            <li class="p-3 text-center text-gray-500">Memuat pesan...</li>
-        </ul>
-    </div>
 
 
     <!-- BANNER -->
     <div class="w-full bg-[#C4431E] rounded-3xl text-white p-10 flex justify-between shadow-xl relative overflow-hidden">
         <div class="w-2/3">
-            <h1 class="text-4xl font-bold">Hai, {{ $user['nama'] ?? 'Pengguna' }}</h1>
+            <h1 class="text-4xl font-bold">Hai, {{ $user->nama ?? 'Pengguna' }}</h1>
             <p class="text-xl mt-2 mb-6">ada koleksi buku baru yang bisa kamu jelajahi hari ini!</p>
 
            <a href="{{ route('search') }}" 
@@ -179,9 +164,6 @@
 
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold">Rekomendasi Untuk Kamu</h2>
-                    <a href="#" class="text-sm font-semibold text-gray-600 hover:text-black flex items-center">
-                        Lihat Lebih Banyak ►
-                    </a>
                 </div>
 
                 <div class="flex-1 overflow-y-auto pr-2 mt-4 relative" id="scrollBox">
@@ -190,88 +172,23 @@
             bg-gradient-to-t from-white to-transparent">
 </div>
                     <div class="grid grid-cols-5 gap-x-6 gap-y-10">
-
-                        <!-- Semua item buku kamu tetap sama -->
-<div class="flex flex-col items-center">
-    <img src="images/machine Learning.jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">Machine<br>Learning</p>
-
-    <a href="{{ route('detail', 'Machine Learning') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
-
-<div class="flex flex-col items-center">
-    <img src="images/download (1).jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">Artificial<br>Intelligence</p>
-
-    <a href="{{ route('detail', 'Artificial Intelligence') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
-
-<div class="flex flex-col items-center">
-    <img src="images/download (2).jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">Cyber<br>Security</p>
-
-    <a href="{{ route('detail', 'Cyber Security') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
-
-<div class="flex flex-col items-center">
-    <img src="images/Kalkulus.jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">Kalkulus<br>Book</p>
-
-    <a href="{{ route('detail', 'Kalkulus Book') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
-
-<div class="flex flex-col items-center">
-    <img src="images/download (11).jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">UX Design<br>Thinking</p>
-
-    <a href="{{ route('detail', 'UX Design Thinking') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
-
-<!-- BARIS 2 -->
-<div class="flex flex-col items-center">
-    <img src="images/download (33).jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">Pemrograman<br>Aplikasi Web</p>
-
-    <a href="{{ route('detail', 'Pemrograman Aplikasi Web') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
-
-<div class="flex flex-col items-center">
-    <img src="images/download (3).jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">Java<br>Book</p>
-
-    <a href="{{ route('detail', 'Java Book') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
-
-<div class="flex flex-col items-center">
-    <img src="images/download (4).jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">Python<br>Book</p>
-
-    <a href="{{ route('detail', 'Python Book') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
-
-<div class="flex flex-col items-center">
-    <img src="images/download (5).jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">Docker<br>Book</p>
-
-    <a href="{{ route('detail', 'Docker Book') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
-
-<div class="flex flex-col items-center">
-    <img src="images/download (13).jpeg" class="w-36 h-48 object-cover rounded-xl shadow">
-    <p class="font-semibold text-center mt-2">Statistika<br>Buku</p>
-
-    <a href="{{ route('detail', 'Statistika Buku') }}"
-       class="mt-1 text-xl font-bold">＋</a>
-</div>
+                        @forelse($rekomendasiBuku ?? [] as $buku)
+                        <div class="flex flex-col items-center">
+                            @php
+                                $dummyData = \App\Models\Buku::dummyData();
+                                $slug = str_replace(' ', '-', strtolower($buku->judul));
+                                $imgPath = $dummyData[$buku->judul]['img'] ?? 'images/book-placeholder.jpg';
+                            @endphp
+                            <img src="{{ asset($imgPath) }}" class="w-36 h-48 object-cover rounded-xl shadow" onerror="this.src='{{ asset('images/book-placeholder.jpg') }}'">
+                            <p class="font-semibold text-center mt-2">{{ Str::limit($buku->judul, 20) }}</p>
+                            <p class="text-xs text-gray-500 text-center">{{ $buku->penulis ?? 'N/A' }}</p>
+                            <a href="{{ route('detail', $slug) }}" class="mt-1 text-xl font-bold">＋</a>
+                        </div>
+                        @empty
+                        <div class="col-span-5 text-center text-gray-500 py-8">
+                            <p>Belum ada rekomendasi. Mulai pinjam buku untuk mendapatkan rekomendasi!</p>
+                        </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
@@ -294,7 +211,7 @@
                               d="M5 4v16a1 1 0 001 1h12a1 1 0 001-1V4m-7 9l3-3m0 0l-3-3m3 3H9"/>
                     </svg>
                 </div>
-                <p class="text-lg font-medium text-center">1 Buku sedang dipinjam</p>
+                <p class="text-lg font-medium text-center">{{ $sedangDipinjam ?? 0 }} Buku sedang dipinjam</p>
             </div>
 
             <div class="flex flex-col items-center space-y-3">
@@ -305,13 +222,19 @@
                               d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <p class="text-lg font-medium text-center">3 Hari lagi pengembalian</p>
+                <p class="text-lg font-medium text-center">
+                    @if($hariTersisa !== null)
+                        {{ $hariTersisa }} Hari lagi pengembalian
+                    @else
+                        Tidak ada pinjaman aktif
+                    @endif
+                </p>
             </div>
         </div>
 
         <div class="bg-white text-black text-center mt-8 py-3 px-5 rounded-full font-semibold shadow-sm text-[16px] leading-tight">
-            5 Buku yang telah dibaca bulan ini <br>
-            Genre buku favoritmu <span class="font-bold">Teknologi</span>
+            {{ $bukuBulanIni ?? 0 }} Buku yang telah dibaca bulan ini <br>
+            Genre buku favoritmu <span class="font-bold">{{ $genreFavorit ?? 'Belum ada' }}</span>
         </div>
     </div>
 
@@ -345,28 +268,38 @@
         const scrollBox = document.getElementById("scrollBox");
 const fadeBottom = document.getElementById("fadeBottom");
 
-scrollBox.addEventListener("scroll", () => {
-    const atBottom = scrollBox.scrollHeight - scrollBox.scrollTop <= scrollBox.clientHeight + 2;
+if(scrollBox && fadeBottom) {
+    scrollBox.addEventListener("scroll", () => {
+        const atBottom = scrollBox.scrollHeight - scrollBox.scrollTop <= scrollBox.clientHeight + 2;
+        fadeBottom.style.opacity = atBottom ? "0" : "1";
+    });
+}
 
-    fadeBottom.style.opacity = atBottom ? "0" : "1";
-});
-        const loans = [
-            { title: "Clean Code, Robert C. Martin", status: "returned", date: "10 Okt 2025" },
-            { title: "Machine Learning, Andrew Ng", status: "returned", date: "05 Sep 2025" },
-            { title: "Sistem Basis Data, Silberschatz", status: "not-returned", date: null }
-        ];
+        const loans = @json($riwayatPeminjaman ?? []);
+        const loansData = loans.map(loan => ({
+            title: loan.buku ? `${loan.buku.judul}, ${loan.buku.penulis}` : 'Buku tidak ditemukan',
+            status: loan.status === 'dikembalikan' ? 'returned' : 'not-returned',
+            date: loan.tanggal_kembali ? new Date(loan.tanggal_kembali).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : null
+        }));
 
         const list = document.getElementById("loanList");
         const searchInput = document.getElementById("searchInput");
         const filterSelect = document.getElementById("filterSelect");
 
         function renderList() {
-            const keyword = searchInput.value.toLowerCase();
-            const filter = filterSelect.value;
+            if (!list) return;
+            
+            const keyword = searchInput ? searchInput.value.toLowerCase() : '';
+            const filter = filterSelect ? filterSelect.value : 'all';
 
             list.innerHTML = "";
 
-            loans
+            if (loansData.length === 0) {
+                list.innerHTML = '<div class="p-3 text-center text-gray-500">Belum ada riwayat peminjaman</div>';
+                return;
+            }
+
+            loansData
                 .filter(item =>
                     item.title.toLowerCase().includes(keyword) &&
                     (filter === "all" ||
@@ -387,27 +320,21 @@ scrollBox.addEventListener("scroll", () => {
                 });
         }
 
-        searchInput.addEventListener("input", renderList);
-        filterSelect.addEventListener("change", renderList);
+        if (searchInput) searchInput.addEventListener("input", renderList);
+        if (filterSelect) filterSelect.addEventListener("change", renderList);
 
         renderList();
     </script>
 
 <script>
     const notifBtn = document.getElementById("notifBtn");
-    const msgBtn = document.getElementById("msgBtn");
-
     const notifPopup = document.getElementById("notifPopup");
-    const msgPopup = document.getElementById("msgPopup");
-
-let notifInterval;
-let msgInterval;
+    let notifInterval;
 
 function toggleNotifPopup() {
     const popup = document.getElementById("notifPopup");
     popup.classList.toggle("hidden");
     popup.classList.toggle("flex");
-    document.getElementById("msgPopup").classList.add("hidden");
     
     if (!popup.classList.contains("hidden")) {
         loadNotifikasi();
@@ -521,89 +448,12 @@ function formatTime(dateString) {
         notifInterval = setInterval(loadNotifikasi, 30000); // Update setiap 30 detik
     });
 
-    msgBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        msgPopup.classList.toggle("hidden");
-        notifPopup.classList.add("hidden");
-        if (!msgPopup.classList.contains("hidden")) {
-            loadMessages();
-        }
-    });
-
     // Klik luar menutup semua popup
     document.getElementById("notifPopup").addEventListener("click", function(e) {
         if (e.target === this) {
             toggleNotifPopup();
         }
     });
-</script>
-<script>
-function loadMessages() {
-    fetch('/api/pesan?only_inbox=1', {
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json'
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        const list = document.getElementById('messageList');
-        const badge = document.getElementById('msgBadge');
-        if (badge) {
-            const count = data.unread_count || 0;
-            badge.textContent = count;
-            badge.classList.toggle('hidden', count === 0);
-        }
-        if (Array.isArray(data.data) && data.data.length > 0) {
-            list.innerHTML = data.data.map(m => {
-                const confirmed = m.status === 'confirmed';
-                const status = confirmed ? '<span class="text-green-700 text-xs ml-2">Dikonfirmasi</span>' : '';
-                return `
-                    <li class="p-3 bg-gray-100 rounded-xl shadow hover:shadow-md">
-                        <p class="text-sm font-semibold">Pesan ${status}</p>
-                        <p class="text-sm text-gray-700 mt-1">${m.isi}</p>
-                        <div class="flex justify-end mt-2 text-xs gap-4">
-                            ${!confirmed ? `<button class="text-green-700" onclick="confirmMessage(${m.id})">Konfirmasi</button>` : ''}
-                            <button class="text-blue-700" onclick="replyMessage(${m.id})">Balas</button>
-                        </div>
-                    </li>
-                `;
-            }).join('');
-        } else {
-            list.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada pesan</li>';
-        }
-    })
-    .catch(() => {
-        const list = document.getElementById('messageList');
-        list.innerHTML = '<li class="p-3 text-center text-red-600">Gagal memuat pesan</li>';
-    });
-}
-function confirmMessage(id) {
-    fetch(`/api/pesan/${id}/confirm`, {
-        method: 'PUT',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json'
-        }
-    }).then(() => loadMessages());
-}
-function replyMessage(id) {
-    const isi = prompt('Tulis balasan:');
-    if (!isi) return;
-    fetch(`/api/pesan/${id}/reply`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ isi })
-    }).then(() => loadMessages());
-}
-document.addEventListener('DOMContentLoaded', () => {
-    loadMessages();
-    msgInterval = setInterval(loadMessages, 30000);
-});
 </script>
 
 <script>

@@ -36,20 +36,22 @@
 
     <!-- STATISTIK CARDS -->
     <div class="grid grid-cols-4 gap-6 mt-6">
-        @php
-            $stats = [
-                ['10','Total'],
-                ['2','Sedang Ditinjau'],
-                ['3','Dalam Antrian'],
-                ['5','Selesai']
-            ];
-        @endphp
-        @foreach($stats as $c)
-            <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
-                <div class="text-4xl font-bold">{{ $c[0] }}</div>
-                <div class="mt-1">{{ $c[1] }}</div>
-            </div>
-        @endforeach
+        <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
+            <div class="text-4xl font-bold">{{ $stats['total'] ?? 0 }}</div>
+            <div class="mt-1">Total</div>
+        </div>
+        <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
+            <div class="text-4xl font-bold">{{ $stats['sedang_dipinjam'] ?? 0 }}</div>
+            <div class="mt-1">Sedang Dipinjam</div>
+        </div>
+        <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
+            <div class="text-4xl font-bold">{{ $stats['dikembalikan'] ?? 0 }}</div>
+            <div class="mt-1">Dikembalikan</div>
+        </div>
+        <div class="bg-[#B1321B] p-6 rounded-xl text-white shadow-lg text-center">
+            <div class="text-4xl font-bold">{{ $stats['hilang'] ?? 0 }}</div>
+            <div class="mt-1">Hilang</div>
+        </div>
     </div>
 
     <!-- FILTER & SEARCH -->
@@ -65,10 +67,9 @@
         </select>
         <select id="statusFilter" class="py-2 px-3 rounded-lg border w-40">
             <option value="">Status</option>
-            <option value="Sedang Ditinjau Admin">Sedang Ditinjau Admin</option>
-            <option value="Bisa Diambil">Bisa Diambil</option>
-            <option value="Dalam Antrian">Dalam Antrian</option>
-            <option value="Selesai">Selesai</option>
+            <option value="sedang_dipinjam">Sedang Dipinjam</option>
+            <option value="dikembalikan">Dikembalikan</option>
+            <option value="hilang">Hilang</option>
         </select>
         <button onclick="applyFilter()" class="bg-blue-600 text-white px-6 py-2 rounded-lg shadow">Search</button>
     </div>
@@ -88,41 +89,45 @@
                 </tr>
             </thead>
             <tbody>
-                @php
-                    $peminjaman = [
-                        ['P-001','Pemrograman Web','Teknologi','1 Dec 2025','8 Dec 2025','Sedang Ditinjau Admin'],
-                        ['P-002','Algoritma dan Struktur Data','Informatika','2 Dec 2025','9 Dec 2025','Bisa Diambil'],
-                        ['P-003','Psikologi Remaja','Psikologi','3 Dec 2025','10 Dec 2025','Dalam Antrian'],
-                        ['P-004','Dasar Akuntansi','Ekonomi','4 Dec 2025','11 Dec 2025','Selesai'],
-                    ];
-                @endphp
-                @foreach($peminjaman as $row)
+                @forelse($pinjaman ?? [] as $p)
                 <tr class="odd:bg-gray-100">
-                    <td class="px-4 py-2">{{ $row[0] }}</td>
-                    <td class="px-4 py-2">{{ $row[1] }}</td>
-                    <td class="px-4 py-2">{{ $row[2] }}</td>
-                    <td class="px-4 py-2">{{ $row[3] }}</td>
-                    <td class="px-4 py-2">{{ $row[4] }}</td>
+                    <td class="px-4 py-2">P-{{ str_pad($p->id, 3, '0', STR_PAD_LEFT) }}</td>
+                    <td class="px-4 py-2">{{ $p->buku->judul ?? 'N/A' }}</td>
+                    <td class="px-4 py-2">{{ $p->buku->genre ?? 'N/A' }}</td>
+                    <td class="px-4 py-2">{{ $p->tanggal_pinjam ? \Carbon\Carbon::parse($p->tanggal_pinjam)->format('d M Y') : 'N/A' }}</td>
+                    <td class="px-4 py-2">{{ $p->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($p->tanggal_jatuh_tempo)->format('d M Y') : 'N/A' }}</td>
                     <td class="px-4 py-2 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full {{ $row[5]=='Dalam Antrian'?'bg-orange-500':($row[5]=='Sedang Ditinjau Admin'?'bg-yellow-500':($row[5]=='Bisa Diambil'?'bg-green-500':'bg-gray-500')) }}"></span>
-                        {{ $row[5] }}
+                        @php
+                            $statusColors = [
+                                'sedang_dipinjam' => 'bg-yellow-500',
+                                'dikembalikan' => 'bg-green-500',
+                                'hilang' => 'bg-red-500',
+                            ];
+                            $statusLabels = [
+                                'sedang_dipinjam' => 'Sedang Dipinjam',
+                                'dikembalikan' => 'Dikembalikan',
+                                'hilang' => 'Hilang',
+                            ];
+                            $color = $statusColors[$p->status] ?? 'bg-gray-500';
+                            $label = $statusLabels[$p->status] ?? $p->status;
+                        @endphp
+                        <span class="w-2 h-2 rounded-full {{ $color }}"></span>
+                        {{ $label }}
                     </td>
                     <td class="px-4 py-2 text-center">
                         <!-- Tombol Detail -->
                         <button 
-                            onclick="openDetail('{{ $row[0] }}','{{ $row[1] }}','{{ $row[2] }}','{{ $row[3] }}','{{ $row[4] }}','{{ $row[5] }}')" 
+                            onclick="openDetail('P-{{ str_pad($p->id, 3, '0', STR_PAD_LEFT) }}','{{ $p->buku->judul ?? 'N/A' }}','{{ $p->buku->genre ?? 'N/A' }}','{{ $p->tanggal_pinjam ? \Carbon\Carbon::parse($p->tanggal_pinjam)->format('d M Y') : 'N/A' }}','{{ $p->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($p->tanggal_jatuh_tempo)->format('d M Y') : 'N/A' }}','{{ $label }}')" 
                             class="text-black hover:scale-110 transition mr-2">
                             <i class="fas fa-info-circle"></i>
                         </button>
-                        <!-- Tombol Edit jika Dalam Antrian -->
-                        @if($row[5]=='Dalam Antrian')
-                            <button onclick="editData('{{ $row[0] }}')" class="text-blue-600 hover:scale-110 transition">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        @endif
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">Belum ada data peminjaman</td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
