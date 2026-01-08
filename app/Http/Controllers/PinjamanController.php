@@ -52,15 +52,21 @@ class PinjamanController extends Controller
             return response()->json(['message' => 'Pengguna sudah meminjam buku ini'], 400);
         }
 
-        // Buat peminjaman
-        $pinjaman = Pinjaman::create([
+        $payload = [
             'pengguna_id' => $pengguna->id,
             'buku_id' => $buku->id,
             'status' => 'sedang_dipinjam',
-            'tanggal_pinjam' => Carbon::now()->toDateString(),
-            'tanggal_jatuh_tempo' => Carbon::now()->addDays(7)->toDateString(),
-            'denda' => 0,
-        ]);
+        ];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('pinjaman', 'tanggal_pinjam')) {
+            $payload['tanggal_pinjam'] = Carbon::now()->toDateString();
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+            $payload['tanggal_jatuh_tempo'] = Carbon::now()->addDays(7)->toDateString();
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('pinjaman', 'denda')) {
+            $payload['denda'] = 0;
+        }
+        $pinjaman = Pinjaman::create($payload);
 
         // Kurangi stok buku
         $buku->decrement('stok');
@@ -79,11 +85,16 @@ class PinjamanController extends Controller
             ],
         ]);
 
-        // Buat notifikasi informasi peminjaman
+        $pesanPinjam = "Buku '{$buku->judul}' berhasil dipinjam.";
+        if (\Illuminate\Support\Facades\Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo') && $pinjaman->tanggal_jatuh_tempo) {
+            try {
+                $pesanPinjam .= " Jatuh tempo: " . Carbon::parse($pinjaman->tanggal_jatuh_tempo)->format('d F Y');
+            } catch (\Exception $e) {}
+        }
         Notifikasi::create([
             'pengguna_id' => $pengguna->id,
             'judul' => 'Buku Berhasil Dipinjam',
-            'pesan' => "Buku '{$buku->judul}' berhasil dipinjam. Jatuh tempo: " . Carbon::parse($pinjaman->tanggal_jatuh_tempo)->format('d F Y'),
+            'pesan' => $pesanPinjam,
             'tipe' => 'success',
             'dibaca' => false,
             'link' => route('pengembalian.index'),
@@ -133,15 +144,24 @@ class PinjamanController extends Controller
         // Update status & tambahkan stok buku
         $tanggalKembali = Carbon::now();
         $jatuhTempo = $pinjaman->tanggal_jatuh_tempo ? Carbon::parse($pinjaman->tanggal_jatuh_tempo) : $tanggalKembali;
-        $telatHari = max(0, $tanggalKembali->diffInDays($jatuhTempo, false));
+        // Hitung telat secara benar: hari_kembali > jatuh_tempo => telat
+        $telatHari = 0;
+        if ($jatuhTempo->lt($tanggalKembali)) {
+            $telatHari = $jatuhTempo->diffInDays($tanggalKembali);
+        }
         $tarifPerHari = 2000;
         $denda = $telatHari * $tarifPerHari;
 
-        $pinjaman->update([
+        $updatePayload = [
             'status' => 'dikembalikan',
-            'tanggal_kembali' => $tanggalKembali->toDateString(),
-            'denda' => $denda,
-        ]);
+        ];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('pinjaman', 'tanggal_kembali')) {
+            $updatePayload['tanggal_kembali'] = $tanggalKembali->toDateString();
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('pinjaman', 'denda')) {
+            $updatePayload['denda'] = $denda;
+        }
+        $pinjaman->update($updatePayload);
         Buku::where('id', $pinjaman->buku_id)->increment('stok');
 
         // Log aktivitas kembalikan buku

@@ -2,36 +2,93 @@
 
 namespace App\Services;
 
-class KnnRecommendation
+class KnnRekomendasi
 {
-    public function hitungRekomendasi($penggunaId, $dataPeminjaman, $k = 3)
+    /**
+     * Hitung beberapa rekomendasi menggunakan pendekatan K-Nearest Neighbors sederhana.
+     * Mengembalikan array dari ['buku_id' => int, 'skor' => float] terurut desc berdasarkan skor.
+     *
+     * @param int $penggunaId
+     * @param \Illuminate\Support\Collection $dataPeminjaman Collection of Pinjaman models
+     * @param int $k jumlah tetangga terdekat yang dipertimbangkan
+     * @param int $limit jumlah rekomendasi yang dikembalikan
+     * @return array
+     */
+    public function hitungRekomendasi($penggunaId, $dataPeminjaman, $k = 5, $limit = 10): array
     {
-        // 1. Ambil daftar buku yang pernah dipinjam pengguna tersebut
-        $userHistory = $dataPeminjaman->where('pengguna_id', $penggunaId);
+        // Hanya gunakan pinjaman yang relevan (yang benar-benar dipinjam/dikembalikan)
+        $dataPeminjaman = $dataPeminjaman->filter(function ($r) {
+            return in_array($r->status, ['dikembalikan', 'sedang_dipinjam']);
+        });
 
-        // 2. Cari user lain yang memiliki riwayat mirip (similarity)
-        $similarUsers = $dataPeminjaman->where('pengguna_id', '!=', $penggunaId);
-
-        // 3. Hitung jarak/similaritas sederhana (contoh: jumlah buku yang sama)
-        $similarityScores = [];
-        foreach ($similarUsers as $row) {
-            $score = $userHistory->where('buku_id', $row->buku_id)->count();
-            $similarityScores[$row->pengguna_id] = ($similarityScores[$row->pengguna_id] ?? 0) + $score;
+        // Buat map pengguna => set buku yang dipinjam
+        $userBukuMap = [];
+        foreach ($dataPeminjaman as $row) {
+            $uid = $row->pengguna_id;
+            $userBukuMap[$uid] = $userBukuMap[$uid] ?? [];
+            $userBukuMap[$uid][$row->buku_id] = true;
         }
 
-        // 4. Ambil K user terdekat (nilai similarity tertinggi)
-        arsort($similarityScores);
-        $topUsers = array_slice($similarityScores, 0, $k, true);
+        $targetSet = isset($userBukuMap[$penggunaId]) ? array_keys($userBukuMap[$penggunaId]) : [];
 
-        // 5. Ambil buku yang mereka pinjam tapi belum pernah dipinjam oleh pengguna
-        $rekomendasiBuku = $dataPeminjaman
-            ->whereIn('pengguna_id', array_keys($topUsers))
-            ->whereNotIn('buku_id', $userHistory->pluck('buku_id'))
-            ->first();
+        // Jika user belum pernah pinjam, fallback ke buku populer (diambil dari frekuensi)
+        if (empty($targetSet)) {
+            $freq = [];
+            foreach ($dataPeminjaman as $row) {
+                $freq[$row->buku_id] = ($freq[$row->buku_id] ?? 0) + 1;
+            }
+            arsort($freq);
 
-        return [
-            'buku_id' => $rekomendasiBuku->buku_id ?? null,
-            'skor' => max($topUsers) ?? 0,
-        ];
+            $out = [];
+            foreach ($freq as $bukuId => $cnt) {
+                $out[] = ['buku_id' => $bukuId, 'skor' => (float) $cnt];
+                if (count($out) >= $limit) break;
+            }
+
+            return $out;
+        }
+
+        // Hitung similarity (Jaccard) antara target dan tiap user lain
+        $scores = [];
+        foreach ($userBukuMap as $uid => $set) {
+            if ($uid == $penggunaId) continue;
+            $setKeys = array_keys($set);
+            $intersect = count(array_intersect($targetSet, $setKeys));
+            $union = count(array_unique(array_merge($targetSet, $setKeys)));
+            $sim = $union > 0 ? $intersect / $union : 0;
+            if ($sim > 0) {
+                $scores[$uid] = $sim;
+            }
+        }
+
+        // Ambil top-K users
+        arsort($scores);
+        $topUsers = array_slice($scores, 0, $k, true);
+
+        // Koleksi kandidat buku dari top users yang belum pernah dipinjam target
+        $candidateScores = [];
+        foreach ($topUsers as $uid => $sim) {
+            foreach (array_keys($userBukuMap[$uid] ?? []) as $bukuId) {
+                if (in_array($bukuId, $targetSet)) continue;
+                // tambahkan bobot berdasarkan similarity; jika beberapa user menyarankan buku yang sama, jumlahkan
+                $candidateScores[$bukuId] = ($candidateScores[$bukuId] ?? 0) + $sim;
+            }
+        }
+
+        // Jika tidak ada kandidat, fallback ke genre-based atau populer: return kosong for caller to handle
+        if (empty($candidateScores)) {
+            return [];
+        }
+
+        // Normalisasi dan urutkan
+        arsort($candidateScores);
+
+        $out = [];
+        foreach ($candidateScores as $bukuId => $score) {
+            $out[] = ['buku_id' => $bukuId, 'skor' => (float) $score];
+            if (count($out) >= $limit) break;
+        }
+
+        return $out;
     }
 }

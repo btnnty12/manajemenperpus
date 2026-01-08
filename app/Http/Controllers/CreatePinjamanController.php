@@ -9,6 +9,7 @@ use App\Models\Pinjaman;
 use App\Models\Notifikasi;
 use App\Models\Pengguna;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class CreatePinjamanController extends Controller
 {
@@ -47,20 +48,31 @@ class CreatePinjamanController extends Controller
             return response()->json(['data' => []]);
         }
 
-        $buku = Buku::where('judul', 'LIKE', "%{$keyword}%")
-            ->orWhere('penulis', 'LIKE', "%{$keyword}%")
-            ->where('stok', '>', 0)
-            ->limit(10)
-            ->get()
-            ->map(function ($b) {
-                return [
-                    'id' => $b->id,
-                    'judul' => $b->judul,
-                    'penulis' => $b->penulis,
-                    'tahun_terbit' => $b->tahun_terbit,
-                    'stok' => $b->stok,
-                ];
+        // Tokenize keyword and perform order-independent search across fields (case-insensitive)
+        $terms = preg_split('/\s+/', trim($keyword));
+
+        $q = Buku::query()->where('stok', '>', 0)->limit(10);
+        foreach ($terms as $t) {
+            $t = trim($t);
+            if ($t === '') continue;
+            $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $t);
+            $like = '%' . mb_strtolower($escaped, 'UTF-8') . '%';
+
+            $q->where(function ($qq) use ($like) {
+                $qq->whereRaw('LOWER(judul) LIKE ?', [$like])
+                   ->orWhereRaw('LOWER(penulis) LIKE ?', [$like]);
             });
+        }
+
+        $buku = $q->get()->map(function ($b) {
+            return [
+                'id' => $b->id,
+                'judul' => $b->judul,
+                'penulis' => $b->penulis,
+                'tahun_terbit' => $b->tahun_terbit,
+                'stok' => $b->stok,
+            ];
+        });
 
         return response()->json(['data' => $buku]);
     }
@@ -93,15 +105,21 @@ class CreatePinjamanController extends Controller
             return back()->withErrors(['buku_id' => 'Anda sudah meminjam buku ini'])->withInput();
         }
 
-        // Buat peminjaman dengan status menunggu_approval
-        $pinjaman = Pinjaman::create([
+        $payload = [
             'pengguna_id' => $user->id,
             'buku_id' => $buku->id,
             'status' => 'menunggu_approval',
-            'tanggal_pinjam' => Carbon::now()->toDateString(),
-            'tanggal_jatuh_tempo' => Carbon::now()->addDays(7)->toDateString(),
-            'denda' => 0,
-        ]);
+        ];
+        if (Schema::hasColumn('pinjaman', 'tanggal_pinjam')) {
+            $payload['tanggal_pinjam'] = Carbon::now()->toDateString();
+        }
+        if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+            $payload['tanggal_jatuh_tempo'] = Carbon::now()->addDays(7)->toDateString();
+        }
+        if (Schema::hasColumn('pinjaman', 'denda')) {
+            $payload['denda'] = 0;
+        }
+        $pinjaman = Pinjaman::create($payload);
 
         // Jangan kurangi stok dulu, tunggu approval
 

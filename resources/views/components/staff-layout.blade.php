@@ -81,7 +81,7 @@
     <div class="flex-1 py-6 px-8">
         <!-- TOPBAR -->
         <div class="flex justify-end items-center w-full py-4 px-6 space-x-6 relative">
-            <button id="notifBtn" onclick="toggleNotifPopup()" class="relative">
+            <button id="notifBtn" class="relative">
                 <x-icon name="notification" class="w-6 h-6 text-black hover:opacity-80 cursor-pointer" />
                 <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
             </button>

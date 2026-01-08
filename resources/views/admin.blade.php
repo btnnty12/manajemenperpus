@@ -417,6 +417,36 @@
         }
       }
     });
+    
+    async function refreshLoanChart() {
+      try {
+        const res = await fetch('/api/admin/chart-data', {
+          headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+          }
+        });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          loanChart.data.labels = data.map(item => item.month);
+          if (loanChart.data.datasets?.[0]) {
+            loanChart.data.datasets[0].data = data.map(item => item.peminjam);
+          }
+          if (loanChart.data.datasets?.[1]) {
+            loanChart.data.datasets[1].data = data.map(item => item.pengembalian);
+          }
+          loanChart.update();
+        }
+      } catch (e) {
+        console.error('Gagal memuat ulang data chart', e);
+      }
+    }
+    
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'book_updated') {
+        refreshLoanChart();
+      }
+    });
   </script>
 
  <!-- SCRIPT PINDAH INDIKATOR -->

@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\Pinjaman;
 use App\Models\Notifikasi;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class SendReturnReminderNotification extends Command
 {
@@ -31,10 +32,13 @@ class SendReturnReminderNotification extends Command
         // Ambil pinjaman yang jatuh tempo besok (H-1)
         $besok = Carbon::tomorrow();
         
-        $pinjamanBesok = Pinjaman::where('status', 'sedang_dipinjam')
-            ->whereDate('tanggal_jatuh_tempo', $besok->toDateString())
-            ->with(['pengguna', 'buku'])
-            ->get();
+        $query = Pinjaman::where('status', 'sedang_dipinjam')->with(['pengguna', 'buku']);
+        if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+            $query->whereDate('tanggal_jatuh_tempo', $besok->toDateString());
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+        $pinjamanBesok = $query->get();
 
         $count = 0;
 

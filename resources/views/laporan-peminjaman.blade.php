@@ -612,8 +612,14 @@ function approvePinjaman(id) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Try to update stats in-place; if that fails, fallback to full reload
+            fetch('/api/pinjaman/stats').then(r => r.json()).then(s => {
+                document.querySelectorAll('.stat-card h2')[0].textContent = s.total ?? 0;
+                document.querySelectorAll('.stat-card h2')[1].textContent = s.sedang_dipinjam ?? 0;
+                document.querySelectorAll('.stat-card h2')[2].textContent = s.terlambat ?? 0;
+                document.querySelectorAll('.stat-card h2')[3].textContent = 'Rp ' + Number(s.total_denda || 0).toLocaleString('id-ID');
+            }).catch(() => location.reload());
             alert('Peminjaman berhasil disetujui!');
-            location.reload();
         } else {
             alert('Gagal menyetujui peminjaman: ' + (data.message || 'Terjadi kesalahan'));
         }
@@ -640,8 +646,14 @@ function rejectPinjaman(id) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Update stats in-place, fallback to reload
+            fetch('/api/pinjaman/stats').then(r => r.json()).then(s => {
+                document.querySelectorAll('.stat-card h2')[0].textContent = s.total ?? 0;
+                document.querySelectorAll('.stat-card h2')[1].textContent = s.sedang_dipinjam ?? 0;
+                document.querySelectorAll('.stat-card h2')[2].textContent = s.terlambat ?? 0;
+                document.querySelectorAll('.stat-card h2')[3].textContent = 'Rp ' + Number(s.total_denda || 0).toLocaleString('id-ID');
+            }).catch(() => location.reload());
             alert('Peminjaman berhasil ditolak!');
-            location.reload();
         } else {
             alert('Gagal menolak peminjaman: ' + (data.message || 'Terjadi kesalahan'));
         }

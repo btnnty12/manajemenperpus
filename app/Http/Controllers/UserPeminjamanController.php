@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Pinjaman;
 use App\Models\Buku;
+use Illuminate\Support\Facades\Schema;
 
 class UserPeminjamanController extends Controller
 {
@@ -25,12 +26,19 @@ class UserPeminjamanController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Filter tanggal jika ada
         if ($request->has('tanggal_dari') && $request->tanggal_dari) {
-            $query->whereDate('tanggal_pinjam', '>=', $request->tanggal_dari);
+            if (Schema::hasColumn('pinjaman', 'tanggal_pinjam')) {
+                $query->whereDate('tanggal_pinjam', '>=', $request->tanggal_dari);
+            } else {
+                $query->whereDate('created_at', '>=', $request->tanggal_dari);
+            }
         }
         if ($request->has('tanggal_sampai') && $request->tanggal_sampai) {
-            $query->whereDate('tanggal_pinjam', '<=', $request->tanggal_sampai);
+            if (Schema::hasColumn('pinjaman', 'tanggal_pinjam')) {
+                $query->whereDate('tanggal_pinjam', '<=', $request->tanggal_sampai);
+            } else {
+                $query->whereDate('created_at', '<=', $request->tanggal_sampai);
+            }
         }
 
         $pinjaman = $query->get();

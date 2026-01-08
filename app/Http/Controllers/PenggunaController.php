@@ -99,4 +99,17 @@ class PenggunaController extends Controller
             'pengguna' => $pengguna,
         ]);
     }
+
+    // Return list of admin and staff users (minimal fields) for selection in UI
+    public function listAdmins()
+    {
+        $admins = Pengguna::whereIn('peran', ['admin', 'staff'])
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'email', 'peran']);
+
+        return response()->json([
+            'message' => 'Daftar admin/staff',
+            'data' => $admins,
+        ]);
+    }
 }

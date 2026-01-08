@@ -33,6 +33,22 @@
         <span class="font-semibold text-lg">{{ Auth::user()->nama ?? 'Pengguna' }}</span>
     </div>
 
+    <!-- POPUP NOTIFIKASI (Sama seperti di halaman utama) -->
+    <div id="notifPopup" class="hidden fixed inset-0 bg-black/50 items-center justify-center z-50">
+        <div class="bg-white shadow-xl rounded-2xl p-6 w-96 max-h-[80vh] overflow-y-auto relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-xl text-[#A63A2D]">Notifikasi</h3>
+                <div class="flex gap-2">
+                    <button onclick="markAllAsRead()" class="text-xs text-blue-600 hover:underline">Tandai semua dibaca</button>
+                    <button onclick="toggleNotifPopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+                </div>
+            </div>
+            <ul id="notifList" class="space-y-3">
+                <li class="p-3 text-center text-gray-500">Memuat notifikasi...</li>
+            </ul>
+        </div>
+    </div>
+
     <div class="w-full border-b-2 border-white mb-6"></div>
 
     <section class="max-w-4xl">
@@ -143,6 +159,7 @@
         popup.classList.toggle('flex');
         if (!popup.classList.contains('hidden')) loadNotifikasi();
     }
+
     function loadNotifikasi() {
         fetch('/api/notifikasi', {
             headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 'Accept': 'application/json' }
@@ -150,14 +167,94 @@
         .then(r => r.json())
         .then(d => {
             const badge = document.getElementById('notifBadge');
+            const notifList = document.getElementById('notifList');
             if (badge) {
                 const c = d.unread_count || 0;
                 badge.textContent = c;
                 badge.classList.toggle('hidden', c === 0);
             }
+
+            if (!notifList) return;
+
+            if (d.notifikasi && d.notifikasi.length > 0) {
+                notifList.innerHTML = d.notifikasi.map(notif => {
+                    const tipeColors = {
+                        'info': 'bg-blue-50 border-blue-500',
+                        'warning': 'bg-yellow-50 border-yellow-500',
+                        'success': 'bg-green-50 border-green-500',
+                        'error': 'bg-red-50 border-red-500'
+                    };
+                    const color = tipeColors[notif.tipe] || tipeColors['info'];
+                    const waktu = formatTime(notif.created_at);
+                    const unreadClass = !notif.dibaca ? 'font-semibold' : '';
+                    const link = notif.link ? `onclick="window.location.href='${notif.link}'"` : '';
+
+                    return `
+                        <li class="p-3 ${color} rounded-xl border-l-4 ${unreadClass} cursor-pointer hover:shadow-md" ${link} onclick="markAsRead(${notif.id})">
+                            <p class="text-sm font-semibold text-gray-800">${notif.judul}</p>
+                            <p class="text-xs text-gray-600 mt-1">${notif.pesan}</p>
+                            <p class="text-xs text-gray-400 mt-1">${waktu}</p>
+                        </li>
+                    `;
+                }).join('');
+            } else {
+                notifList.innerHTML = '<li class="p-3 text-center text-gray-500">Tidak ada notifikasi</li>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading notifications:', error);
         });
     }
-    document.addEventListener('DOMContentLoaded', loadNotifikasi);
+
+    function markAsRead(id) {
+        fetch(`/api/notifikasi/${id}/read`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(() => {
+            loadNotifikasi();
+        });
+    }
+
+    function markAllAsRead() {
+        fetch('/api/notifikasi/read-all', {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(() => {
+            loadNotifikasi();
+        });
+    }
+
+    function formatTime(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'Baru saja';
+        if (diffMins < 60) return `${diffMins} menit lalu`;
+        if (diffHours < 24) return `${diffHours} jam lalu`;
+        if (diffDays < 7) return `${diffDays} hari lalu`;
+        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    // Load notifikasi saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', () => {
+        loadNotifikasi();
+    });
 </script>
 </body>
 </html>

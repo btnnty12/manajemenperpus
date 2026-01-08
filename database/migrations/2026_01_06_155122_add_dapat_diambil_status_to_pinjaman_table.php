@@ -13,7 +13,10 @@ return new class extends Migration
     public function up(): void
     {
         // Ubah enum status untuk menambahkan status 'dapat_diambil' dan 'menunggu_approval'
-        DB::statement("ALTER TABLE pinjaman MODIFY COLUMN status ENUM('menunggu_approval', 'dapat_diambil', 'sedang_dipinjam', 'dikembalikan', 'hilang') DEFAULT 'menunggu_approval'");
+        // Hanya jalankan ALTER TABLE untuk database yang mendukung ENUM/MySQL
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE pinjaman MODIFY COLUMN status ENUM('menunggu_approval', 'dapat_diambil', 'sedang_dipinjam', 'dikembalikan', 'hilang') DEFAULT 'menunggu_approval'");
+        }
     }
 
     /**
@@ -21,7 +24,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Kembalikan ke enum sebelumnya
-        DB::statement("ALTER TABLE pinjaman MODIFY COLUMN status ENUM('sedang_dipinjam', 'dikembalikan', 'hilang') DEFAULT 'sedang_dipinjam'");
+        // Kembalikan ke enum sebelumnya jika DB mendukung
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE pinjaman MODIFY COLUMN status ENUM('sedang_dipinjam', 'dikembalikan', 'hilang') DEFAULT 'sedang_dipinjam'");
+        }
     }
 };

@@ -240,22 +240,22 @@
     <!-- 4 KOTAK STATISTIK -->
     <div class="stats-row">
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">{{ $stats['totalJudul'] ?? 0 }}</h2>
-            <p>Total Buku</p>
+            <h2 id="statTotalBuku" class="text-4xl font-bold">{{ $stats['totalEksemplar'] ?? 0 }}</h2>
+            <p>Jumlah Buku</p>
         </div>
 
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">{{ $stats['tersedia'] ?? 0 }}</h2>
+            <h2 id="statTersedia" class="text-4xl font-bold">{{ $stats['tersedia'] ?? 0 }}</h2>
             <p>Buku Tersedia</p>
         </div>
 
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">{{ $stats['dipinjam'] ?? 0 }}</h2>
+            <h2 id="statDipinjam" class="text-4xl font-bold">{{ $stats['dipinjam'] ?? 0 }}</h2>
             <p>Sedang Dipinjam</p>
         </div>
 
         <div class="stat-card">
-            <h2 class="text-4xl font-bold">{{ $stats['bukuBaruBulanIni'] ?? 0 }}</h2>
+            <h2 id="statBukuBaru" class="text-4xl font-bold">{{ $stats['bukuBaruBulanIni'] ?? 0 }}</h2>
             <p>Buku Baru Bulan Ini</p>
         </div>
     </div>
@@ -313,11 +313,20 @@
                 $statusClass = ($item->stok ?? 0) > 0 ? 'text-green-600' : 'text-red-600';
             @endphp
             <tr class="border-b buku-row"
+                data-id="{{ $item->id }}"
                 data-judul="{{ strtolower($item->judul ?? '') }}"
                 data-kategori="{{ $item->genre ?? '' }}"
                 data-status="{{ $status }}">
                 <td class="px-6 py-3">{{ $item->id }}</td>
-                <td class="px-6 py-3">-</td>
+                @php
+                    $rakMap = [
+                        'Teknologi' => 'A1','Keamanan' => 'A2','Pemrograman' => 'B1','Psikologi' => 'C1','Akuntansi' => 'D1',
+                        'Manajemen' => 'E1','Statistik' => 'F1','AI' => 'A3','Budaya' => 'G1','Bahasa' => 'H1','Matematika' => 'F2',
+                        'Desain' => 'I1','Fiksi' => 'J1','Sejarah' => 'K1'
+                    ];
+                    $rakVal = $rakMap[$item->genre ?? ''] ?? 'L1';
+                @endphp
+                <td class="px-6 py-3">{{ $rakVal }}</td>
                 <td class="px-6 py-3">{{ $item->judul }}</td>
                 <td class="px-6 py-3">{{ $item->genre }}</td>
                 <td class="px-6 py-3">{{ $item->stok }}</td>
@@ -898,7 +907,7 @@ function showDetailBuku(id) {
         return;
     }
     
-    fetch(`${baseRoute}/${id}`, {
+    fetch(`/api/buku/${id}`, {
         headers: {
             'Accept': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
@@ -971,7 +980,7 @@ function openEditBukuModal(id) {
         return;
     }
     
-    fetch(`${baseRoute}/${id}`, {
+    fetch(`/api/buku/${id}`, {
         headers: {
             'Accept': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
@@ -1101,7 +1110,67 @@ function handleEditBuku(event) {
             if (data.success) {
                 alert(data.message || 'Buku berhasil diperbarui');
                 closeEditBukuModal();
-                location.reload();
+                
+                const updated = data.data || {};
+                const row = document.querySelector(`#bukuTableBody tr[data-id="${id}"]`);
+                if (row) {
+                    const cells = row.querySelectorAll('td');
+                    const statusText = (Number(updated.stok) > 0) ? 'Tersedia' : 'Tidak Tersedia';
+                    const statusClass = (Number(updated.stok) > 0) ? 'text-green-600' : 'text-red-600';
+                    const updatedKategori = (updated.genre ?? updated.kategori ?? '').toString();
+                    const rakMap = {
+                        'Teknologi': 'A1','Keamanan': 'A2','Pemrograman': 'B1','Psikologi': 'C1','Akuntansi': 'D1',
+                        'Manajemen': 'E1','Statistik': 'F1','AI': 'A3','Budaya': 'G1','Bahasa': 'H1','Matematika': 'F2',
+                        'Desain': 'I1','Fiksi': 'J1','Sejarah': 'K1'
+                    };
+                    const rakVal = rakMap[updatedKategori] || 'L1';
+                    
+                    if (cells[0]) cells[0].textContent = updated.id ?? cells[0].textContent;
+                    if (cells[1]) cells[1].textContent = rakVal;
+                    if (cells[2]) cells[2].textContent = updated.judul ?? cells[2].textContent;
+                    if (cells[3]) cells[3].textContent = (updated.genre ?? updated.kategori ?? cells[3].textContent);
+                    if (cells[4]) cells[4].textContent = (updated.stok ?? cells[4].textContent);
+                    if (cells[5]) {
+                        cells[5].textContent = statusText;
+                        cells[5].classList.remove('text-green-600', 'text-red-600');
+                        cells[5].classList.add(statusClass, 'font-semibold');
+                    }
+                    
+                    row.setAttribute('data-judul', String(updated.judul || '').toLowerCase());
+                    row.setAttribute('data-kategori', updated.genre || updated.kategori || '');
+                    row.setAttribute('data-status', statusText);
+                }
+                
+                try {
+                    const statTersediaEl = document.getElementById('statTersedia');
+                    if (statTersediaEl) {
+                        const visibleRows = Array.from(document.querySelectorAll('#bukuTableBody tr'));
+                        const tersediaCount = visibleRows.reduce((acc, r) => {
+                            const status = (r.getAttribute('data-status') || '').toLowerCase();
+                            return acc + (status === 'tersedia' ? 1 : 0);
+                        }, 0);
+                        statTersediaEl.textContent = tersediaCount;
+                    }
+                } catch (e) {}
+                
+                try {
+                    const totalBukuEl = document.getElementById('statTotalBuku');
+                    if (totalBukuEl) {
+                        const rowsAll = Array.from(document.querySelectorAll('#bukuTableBody tr'));
+                        const sumStok = rowsAll.reduce((acc, r) => {
+                            const tds = r.querySelectorAll('td');
+                            const stokStr = tds[4]?.textContent ?? '0';
+                            const stokNum = parseInt(stokStr, 10) || 0;
+                            return acc + stokNum;
+                        }, 0);
+                        totalBukuEl.textContent = sumStok;
+                    }
+                } catch (e) {}
+                
+                try {
+                    localStorage.setItem('book_updated', String(Date.now()));
+                } catch (e) {}
+                
             } else {
                 alert(data.error || 'Gagal memperbarui buku');
             }
@@ -1181,8 +1250,26 @@ function attachRowActions(row) {
         };
     };
 
-    if (detailBtn) detailBtn.onclick = () => openDetailBukuModal(getData());
-    if (editBtn) editBtn.onclick = () => openEditBukuModal(getData(), row);
+    if (detailBtn) {
+        detailBtn.onclick = () => {
+            const data = getData();
+            if (data.id) {
+                showDetailBuku(data.id);
+            } else {
+                openDetailBukuModal(getData());
+            }
+        };
+    }
+    // Pastikan fungsi edit dipanggil dengan ID yang benar,
+    // bukan mengirim seluruh objek ke openEditBukuModal
+    if (editBtn) {
+        editBtn.onclick = () => {
+            const data = getData();
+            if (data.id) {
+                openEditBukuModal(data.id);
+            }
+        };
+    }
     if (deleteBtn) deleteBtn.onclick = () => handleDeleteBuku(row, getData());
 }
 
@@ -1377,8 +1464,9 @@ let currentPage = 1;
 const itemsPerPage = 5;
 
 function updatePagination() {
-    const rows = Array.from(document.querySelectorAll('.buku-row:not([style*="display: none"])'));
-    const totalItems = rows.length;
+    const allRows = Array.from(document.querySelectorAll('#bukuTableBody .buku-row'));
+    const filteredRows = allRows.filter(r => r.style.display !== 'none');
+    const totalItems = filteredRows.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     
     const paginationContainer = document.getElementById('paginationContainer');
@@ -1386,12 +1474,16 @@ function updatePagination() {
     
     if (totalPages <= 1) {
         paginationContainer.innerHTML = '';
+        // Tampilkan hanya baris yang lolos filter
+        filteredRows.forEach(r => r.style.display = '');
+        allRows.forEach(r => {
+            if (!filteredRows.includes(r)) r.style.display = 'none';
+        });
         return;
     }
     
     let paginationHTML = '';
     
-    // Tombol Prev
     paginationHTML += `
         <button onclick="goToPage(${currentPage - 1})" 
                 class="w-8 h-8 flex items-center justify-center bg-gray-300 rounded-full text-gray-700 hover:bg-gray-400 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}"
@@ -1400,7 +1492,6 @@ function updatePagination() {
         </button>
     `;
     
-    // Halaman
     for (let i = 1; i <= totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
             if (i === currentPage) {
@@ -1413,7 +1504,6 @@ function updatePagination() {
         }
     }
     
-    // Tombol Next
     paginationHTML += `
         <button onclick="goToPage(${currentPage + 1})" 
                 class="w-8 h-8 flex items-center justify-center bg-gray-300 rounded-full text-gray-700 hover:bg-gray-400 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}"
@@ -1424,25 +1514,23 @@ function updatePagination() {
     
     paginationContainer.innerHTML = paginationHTML;
     
-    // Tampilkan/sembunyikan rows berdasarkan halaman
-    rows.forEach((row, index) => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        
-        if (index >= startIndex && index < endIndex) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    filteredRows.forEach((row, index) => {
+        row.style.display = (index >= startIndex && index < endIndex) ? '' : 'none';
+    });
+    
+    allRows.forEach(r => {
+        if (!filteredRows.includes(r)) r.style.display = 'none';
     });
 }
 
 function goToPage(page) {
-    const rows = Array.from(document.querySelectorAll('.buku-row:not([style*="display: none"])'));
-    const totalPages = Math.ceil(rows.length / itemsPerPage);
-    
+    const allRows = Array.from(document.querySelectorAll('#bukuTableBody .buku-row'));
+    const filteredRows = allRows.filter(r => r.style.display !== 'none');
+    const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
     if (page < 1 || page > totalPages) return;
-    
     currentPage = page;
     updatePagination();
 }

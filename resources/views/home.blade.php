@@ -83,24 +83,36 @@
 
 
     <!-- NOTIFICATION BUTTON -->
-        <button id="notifBtn" onclick="toggleNotifPopup()" class="text-2xl hover:opacity-80 relative">
-            🔔
+        <button id="notifBtn" class="text-2xl hover:opacity-80 relative">🔔
             <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
         </button>
-
-        <div id="profileBtn"
-     class="bg-blue-500 w-10 h-10 rounded-full text-white flex items-center justify-center font-bold cursor-pointer overflow-hidden">
-    @if(Auth::check() && Auth::user()->foto)
-        <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}'">
-    @else
-        {{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}
-    @endif
-</div>
-
-<span id="profileBtn2" class="font-semibold text-lg cursor-pointer">
-    {{ Auth::user()->nama ?? 'Pengguna' }}
-</span>
+        <!-- POPUP NOTIFIKASI -->
+        <div id="notifPopup" class="hidden fixed inset-0 bg-black/50 items-center justify-center z-50">
+            <div class="bg-white shadow-xl rounded-2xl p-6 w-96 max-h-[80vh] overflow-y-auto relative">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-xl text-[#A63A2D]">Notifikasi</h3>
+                    <div class="flex gap-2">
+                        <button onclick="markAllAsRead()" class="text-xs text-blue-600 hover:underline">Tandai semua dibaca</button>
+                        <button onclick="toggleNotifPopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+                    </div>
+                </div>
+                <ul id="notifList" class="space-y-3">
+                    <li class="p-3 text-center text-gray-500">Memuat notifikasi...</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div id="profileBtn" class="bg-blue-500 w-10 h-10 rounded-full text-white flex items-center justify-center font-bold cursor-pointer overflow-hidden">
+            @if(Auth::check() && Auth::user()->foto)
+                <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}'">
+            @else
+                {{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}
+            @endif
+        </div>
+        
+        <span id="profileBtn2" class="font-semibold text-lg cursor-pointer">{{ Auth::user()->nama ?? 'Pengguna' }}</span>
     </div>
+
 
     <!-- PROFILE DROPDOWN -->
 <div id="profileDropdown"
@@ -117,26 +129,6 @@
     </a>
 
 </div>
-
-
-    <!-- POPUP NOTIFIKASI -->
-    <div id="notifPopup"
-         class="hidden fixed inset-0 bg-black/50 items-center justify-center z-50">
-        <div class="bg-white shadow-xl rounded-2xl p-6 w-96 max-h-[80vh] overflow-y-auto relative">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-xl text-[#A63A2D]">Notifikasi</h3>
-                <div class="flex gap-2">
-                    <button onclick="markAllAsRead()" class="text-xs text-blue-600 hover:underline">Tandai semua dibaca</button>
-                    <button onclick="toggleNotifPopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
-                </div>
-            </div>
-            <ul id="notifList" class="space-y-3">
-                <li class="p-3 text-center text-gray-500">Memuat notifikasi...</li>
-            </ul>
-        </div>
-    </div>
-
-
 
     <!-- BANNER -->
     <div class="w-full bg-[#C4431E] rounded-3xl text-white p-10 flex justify-between shadow-xl relative overflow-hidden">
@@ -169,15 +161,15 @@
                     <div class="grid grid-cols-5 gap-x-6 gap-y-10">
                         @forelse($rekomendasiBuku ?? [] as $buku)
                         <div class="flex flex-col items-center">
-                            @php
-                                $dummyData = \App\Models\Buku::dummyData();
-                                $slug = str_replace(' ', '-', strtolower($buku->judul));
-                                $imgPath = $dummyData[$buku->judul]['img'] ?? 'images/book-placeholder.jpg';
-                            @endphp
-                            <img src="{{ asset($imgPath) }}" class="w-36 h-48 object-cover rounded-xl shadow" onerror="this.src='{{ asset('images/book-placeholder.jpg') }}'">
-                            <p class="font-semibold text-center mt-2">{{ Str::limit($buku->judul, 20) }}</p>
-                            <p class="text-xs text-gray-500 text-center">{{ $buku->penulis ?? 'N/A' }}</p>
-                            <a href="{{ route('detail', $slug) }}" class="mt-1 text-xl font-bold">＋</a>
+                                @php
+                                    // Gunakan atribut model nyata: cover_url dan judul dari DB
+                                    $img = $buku->cover_url ?? asset('images/book.png');
+                                    $slug = \Illuminate\Support\Str::slug($buku->judul ?? 'buku');
+                                @endphp
+                                <img src="{{ $img }}" class="w-36 h-48 object-cover rounded-xl shadow" onerror="this.src='{{ asset('images/book.png') }}'" alt="{{ $buku->judul }}">
+                                <p class="font-semibold text-center mt-2">{{ Str::limit($buku->judul, 20) }}</p>
+                                <p class="text-xs text-gray-500 text-center">{{ $buku->penulis ?? 'N/A' }}</p>
+                                <a href="{{ route('detail', $slug) }}" class="mt-1 text-xl font-bold">＋</a>
                         </div>
                         @empty
                         <div class="col-span-5 text-center text-gray-500 py-8">
@@ -432,10 +424,12 @@ function formatTime(dateString) {
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-    notifBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleNotifPopup();
-    });
+    if (notifBtn) {
+        notifBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleNotifPopup();
+        });
+    }
     
     // Load notifikasi saat halaman dimuat dan update setiap 30 detik
     document.addEventListener('DOMContentLoaded', () => {
@@ -444,11 +438,14 @@ function formatTime(dateString) {
     });
 
     // Klik luar menutup semua popup
-    document.getElementById("notifPopup").addEventListener("click", function(e) {
-        if (e.target === this) {
-            toggleNotifPopup();
-        }
-    });
+    const notifPopupEl = document.getElementById("notifPopup");
+    if (notifPopupEl) {
+        notifPopupEl.addEventListener("click", function(e) {
+            if (e.target === this) {
+                toggleNotifPopup();
+            }
+        });
+    }
 </script>
 
 <script>
@@ -488,6 +485,44 @@ function formatTime(dateString) {
 </script>
 
 </main>
+
+<script>
+// Prevent infinite image onerror loops: set placeholder only once, hide if placeholder fails
+(function(){
+    // Use an existing placeholder image (book.png) to avoid 404s
+    const placeholder = "{{ asset('images/book.png') }}";
+    window.addEventListener('error', function(e){
+        const t = e.target;
+        if (!t || t.tagName !== 'IMG') return;
+        try {
+            if (t.dataset.errored) return; // already handled
+            t.dataset.errored = '1';
+            // If this image already points to a known placeholder and still errors, hide it to stop reloads
+            if (t.src && (t.src.indexOf('book.png') !== -1)) {
+                console.warn('Backup image failed to load — hiding element to avoid repeated requests', t.src);
+                t.style.display = 'none';
+            } else {
+                t.src = placeholder;
+            }
+        } catch (err) {
+            console.error('Image error handler failed', err);
+        }
+    }, true);
+})();
+
+// Detect frequent full-page reloads in a session
+(function(){
+    try {
+        const key = 'pageReloads';
+        const c = Number(sessionStorage.getItem(key) || 0) + 1;
+        sessionStorage.setItem(key, c);
+        console.info('page load count (session):', c);
+        if (c > 5) console.warn('High reload count detected in this session:', c);
+        // Reset counter after 60 seconds inactivity
+        setTimeout(() => sessionStorage.setItem(key, 0), 60000);
+    } catch (err) { /* ignore */ }
+})();
+</script>
 
 </body>
 </html>

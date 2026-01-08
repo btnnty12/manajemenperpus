@@ -9,6 +9,7 @@ use App\Models\Activity;
 use App\Models\Notifikasi;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class StaffController extends Controller
 {
@@ -22,31 +23,49 @@ class StaffController extends Controller
         // Statistik Card 2: Notifikasi Hari Ini
         $notifikasiHariIni = Notifikasi::whereDate('created_at', Carbon::today())->count();
         
-        // Statistik Card 3: Pengembalian Minggu Ini
-        $pengembalianMingguIni = Pinjaman::where('status', 'dikembalikan')
-            ->whereBetween('tanggal_kembali', [
+        // Statistik Card 3: Pengembalian Minggu Ini (fallback ke updated_at jika kolom tidak ada)
+        $pengembalianQueryMinggu = Pinjaman::where('status', 'dikembalikan');
+        if (Schema::hasColumn('pinjaman', 'tanggal_kembali')) {
+            $pengembalianQueryMinggu->whereBetween('tanggal_kembali', [
                 Carbon::now()->startOfWeek()->toDateString(),
                 Carbon::now()->endOfWeek()->toDateString()
-            ])
-            ->count();
+            ]);
+        } else {
+            $pengembalianQueryMinggu->whereBetween('updated_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ]);
+        }
+        $pengembalianMingguIni = $pengembalianQueryMinggu->count();
         
-        // Peminjaman Aktif (untuk tabel)
-        $peminjamanAktif = Pinjaman::with(['pengguna', 'buku'])
-            ->whereIn('status', ['sedang_dipinjam', 'dapat_diambil', 'menunggu_approval'])
-            ->orderBy('tanggal_jatuh_tempo', 'asc')
+        $peminjamanAktifQuery = Pinjaman::with(['pengguna', 'buku'])
+            ->whereIn('status', ['sedang_dipinjam', 'dapat_diambil', 'menunggu_approval']);
+        if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+            $peminjamanAktifQuery->orderBy('tanggal_jatuh_tempo', 'asc');
+        } else {
+            $peminjamanAktifQuery->orderBy('created_at', 'asc');
+        }
+        $peminjamanAktif = $peminjamanAktifQuery
             ->limit(10)
             ->get()
             ->map(function ($pinjam) {
                 $isTerlambat = false;
-                if ($pinjam->tanggal_jatuh_tempo && Carbon::parse($pinjam->tanggal_jatuh_tempo)->isPast() && $pinjam->status === 'sedang_dipinjam') {
+                if (
+                    $pinjam->tanggal_jatuh_tempo &&
+                    Carbon::parse($pinjam->tanggal_jatuh_tempo)->isPast() &&
+                    $pinjam->status === 'sedang_dipinjam'
+                ) {
                     $isTerlambat = true;
                 }
                 
                 return [
                     'id' => $pinjam->id,
-                    'user' => $pinjam->pengguna->nama ?? 'Unknown',
-                    'judul' => $pinjam->buku->judul ?? 'Unknown',
-                    'due' => $pinjam->tanggal_jatuh_tempo ? Carbon::parse($pinjam->tanggal_jatuh_tempo)->format('d M') : '-',
+                    // Gunakan optional() untuk menghindari error jika relasi null
+                    'user' => optional($pinjam->pengguna)->nama ?? 'Unknown',
+                    'judul' => optional($pinjam->buku)->judul ?? 'Unknown',
+                    'due' => $pinjam->tanggal_jatuh_tempo
+                        ? Carbon::parse($pinjam->tanggal_jatuh_tempo)->format('d M')
+                        : ($pinjam->created_at ? Carbon::parse($pinjam->created_at)->format('d M') : '-'),
                     'status' => $isTerlambat ? 'Telat' : ucfirst(str_replace('_', ' ', $pinjam->status)),
                     'isTerlambat' => $isTerlambat,
                 ];
@@ -54,9 +73,13 @@ class StaffController extends Controller
         
         // Profil Staff Stats
         $peminjamanAktifStaff = Pinjaman::whereIn('status', ['sedang_dipinjam', 'dapat_diambil', 'menunggu_approval'])->count();
-        $pengembalianHariIni = Pinjaman::where('status', 'dikembalikan')
-            ->whereDate('tanggal_kembali', Carbon::today())
-            ->count();
+        $pengembalianHariIniQuery = Pinjaman::where('status', 'dikembalikan');
+        if (Schema::hasColumn('pinjaman', 'tanggal_kembali')) {
+            $pengembalianHariIniQuery->whereDate('tanggal_kembali', Carbon::today());
+        } else {
+            $pengembalianHariIniQuery->whereDate('updated_at', Carbon::today());
+        }
+        $pengembalianHariIni = $pengembalianHariIniQuery->count();
         
         // Aktivitas Terbaru
         $aktivitasTerbaru = Activity::with('pengguna')
@@ -99,4 +122,3 @@ class StaffController extends Controller
         ));
     }
 }
-

@@ -29,9 +29,24 @@ class Buku extends Model
     // Accessor untuk URL cover
     public function getCoverUrlAttribute()
     {
-        if ($this->cover) {
-            return asset('storage/' . $this->cover);
+        $cover = $this->cover ?? null;
+        if (! $cover) return null;
+
+        // Jika cover adalah absolute URL, kembalikan langsung
+        if (preg_match('/^https?:\/\//i', $cover)) {
+            return $cover;
         }
+
+        // Jika file ada di storage public, gunakan storage URL
+        if (file_exists(storage_path('app/public/' . $cover))) {
+            return asset('storage/' . $cover);
+        }
+
+        // Jika path ada di public/ (mis. images/book.png), gunakan asset langsung
+        if (file_exists(public_path($cover))) {
+            return asset($cover);
+        }
+
         return null;
     }
 

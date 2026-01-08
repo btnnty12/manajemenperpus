@@ -108,7 +108,7 @@
             @if(Auth::check())
             <div class="bg-blue-500 w-10 h-10 rounded-full text-white flex items-center justify-center font-bold cursor-pointer overflow-hidden">
                 @if(Auth::user()->foto)
-                    <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}'">
+                    <img src="{{ asset('storage/' . Auth::user()->foto) }}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='{{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}'">
                 @else
                     {{ strtoupper(substr(Auth::user()->nama ?? 'PU', 0, 2)) }}
                 @endif
@@ -122,7 +122,10 @@
             <div class="bg-white shadow-xl rounded-2xl p-6 w-96 max-h-[80vh] overflow-y-auto relative">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold text-xl text-[#A63A2D]">Notifikasi</h3>
-                    <button onclick="toggleNotifPopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+                    <div class="flex gap-2">
+                        <button onclick="markAllAsRead()" class="text-xs text-blue-600 hover:underline">Tandai semua dibaca</button>
+                        <button onclick="toggleNotifPopup()" class="text-gray-500 hover:text-gray-900 text-2xl">&times;</button>
+                    </div>
                 </div>
                 <ul id="notifList" class="space-y-3">
                     <li class="p-3 text-center text-gray-500">Memuat notifikasi...</li>
@@ -139,9 +142,22 @@
             <img src="{{ asset('icons/search.svg') }}" 
                  class="w-5 absolute left-4 top-1/2 -translate-y-1/2 opacity-80">
 
+            <!-- Algorithm selector + spinner + info -->
+            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <select id="algoSelect" class="text-sm rounded-full px-3 py-1 border border-yellow-300 bg-white">
+                    <option value="bm">BM</option>
+                    <option value="kmp">KMP</option>
+                    <option value="bf">Brute</option>
+                </select>
+                <div id="searchSpinner" class="hidden w-6 h-6 border-2 border-t-transparent rounded-full animate-spin border-yellow-400"></div>
+            </div>
+
             <!-- Search Results -->
             <div id="searchResults"
                  class="absolute top-full left-0 w-full mt-2 bg-white shadow-lg rounded-lg max-h-60 overflow-y-auto hidden z-50"></div>
+
+            <!-- Small info below input -->
+            <div id="searchInfo" class="absolute top-full left-0 w-full mt-1 text-xs text-gray-500 hidden px-2"></div>
         </div>
 
         <!-- ===== ROW: RIWAYAT ===== -->
@@ -173,11 +189,11 @@
                 @php
                     $dummyData = \App\Models\Buku::dummyData();
                     $slug = str_replace(' ', '-', strtolower($buku->judul));
-                    $imgPath = $dummyData[$buku->judul]['img'] ?? 'images/book-placeholder.jpg';
+                    $imgPath = $dummyData[$buku->judul]['img'] ?? 'images/book.png';
                 @endphp
                 <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
                     <div class="cursor-pointer" onclick="window.location.href='{{ route('detail', $slug) }}'">
-                        <img src="{{ asset($imgPath) }}" class="w-full h-64 object-cover" onerror="this.src='{{ asset('images/book-placeholder.jpg') }}'">
+                        <img src="{{ asset($imgPath) }}" class="w-full h-64 object-cover" onerror="this.src='{{ asset('images/book.png') }}'">
                         <div class="p-4">
                             <p class="font-semibold text-sm mb-1">{{ Str::limit($buku->judul, 30) }}</p>
                             <p class="text-xs text-gray-500">{{ $buku->penulis ?? 'N/A' }}</p>
@@ -199,6 +215,11 @@
             </div>
         </div>
 
+        <script>
+            // Expose basic allBooks array for client-side demo searches (if available)
+            window.allBooks = @json($allBooks ?? []);
+        </script>
+
         <!-- ===== BUKU TERBARU ===== -->
         @if(isset($bukuTerbaru) && $bukuTerbaru->count() > 0)
         <div class="mt-12 px-3" id="bukuTerbaruSection">
@@ -210,11 +231,11 @@
                 @php
                     $dummyData = \App\Models\Buku::dummyData();
                     $slug = str_replace(' ', '-', strtolower($buku->judul));
-                    $imgPath = $dummyData[$buku->judul]['img'] ?? 'images/book-placeholder.jpg';
+                    $imgPath = $dummyData[$buku->judul]['img'] ?? 'images/book.png';
                 @endphp
                 <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
                     <div class="cursor-pointer" onclick="window.location.href='{{ route('detail', $slug) }}'">
-                        <img src="{{ asset($imgPath) }}" class="w-full h-48 object-cover" onerror="this.src='{{ asset('images/book-placeholder.jpg') }}'">
+                        <img src="{{ asset($imgPath) }}" class="w-full h-48 object-cover" onerror="this.src='{{ asset('images/book.png') }}'">
                         <div class="p-3">
                             <p class="font-semibold text-xs mb-1">{{ Str::limit($buku->judul, 25) }}</p>
                             <p class="text-xs text-gray-500">{{ $buku->tahun_terbit ?? 'N/A' }}</p>
@@ -431,6 +452,21 @@
         });
     }
 
+    function markAllAsRead() {
+        fetch('/api/notifikasi/read-all', {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(() => {
+            loadNotifikasi();
+        });
+    }
+
     function formatTime(dateString) {
         const date = new Date(dateString);
         const now = new Date();
@@ -507,20 +543,27 @@ let selectedTahun = {{ $maxYear ?? date('Y') }};
 let searchTimeout;
 searchInput.addEventListener("input", () => {
     const q = searchInput.value.trim();
-    
+    const algo = document.getElementById('algoSelect').value;
+    const spinner = document.getElementById('searchSpinner');
+    const info = document.getElementById('searchInfo');
+
     clearTimeout(searchTimeout);
     
     if (q === "") {
         searchResults.classList.add("hidden");
         hasilPencarianSection.classList.add("hidden");
+        info.classList.add('hidden');
         return;
     }
 
     searchTimeout = setTimeout(() => {
+        spinner.classList.remove('hidden');
+        info.classList.add('hidden');
+
         const genreParam = selectedGenre ? `&genre=${encodeURIComponent(selectedGenre)}` : '';
         const tahunParam = selectedTahun ? `&tahun=${selectedTahun}` : '';
         
-        fetch(`/api/search?q=${encodeURIComponent(q)}&algo=bm&case=true${genreParam}${tahunParam}`, {
+        fetch(`/api/search?q=${encodeURIComponent(q)}&algo=${encodeURIComponent(algo)}&case=true${genreParam}${tahunParam}`, {
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                 'Accept': 'application/json'
@@ -528,8 +571,13 @@ searchInput.addEventListener("input", () => {
         })
         .then(response => response.json())
         .then(data => {
+            spinner.classList.add('hidden');
             if (data.success && data.data && data.data.results) {
                 const results = data.data.results;
+
+                // Show info (count, algo, time)
+                info.textContent = `${data.data.pagination.total} hasil • ${data.data.algorithm.toUpperCase()} • ${Math.round(data.data.process_time_ms)} ms`;
+                info.classList.remove('hidden');
                 
                 // Update dropdown suggestions
                 searchResults.innerHTML = "";
@@ -539,7 +587,7 @@ searchInput.addEventListener("input", () => {
                     results.slice(0, 5).forEach(book => {
                         let d = document.createElement("div");
                         d.className = "p-3 cursor-pointer hover:bg-yellow-100 rounded-lg";
-                        d.textContent = book.judul;
+                        d.innerHTML = `<div class='font-semibold'>${escapeHtml(book.judul)}</div><div class='text-xs text-gray-500 mt-1'>${book.matches && book.matches.judul ? book.matches.judul.snippet : ''}</div>`;
                         d.addEventListener("click", () => {
                             searchInput.value = book.judul;
                             searchResults.classList.add("hidden");
@@ -559,16 +607,30 @@ searchInput.addEventListener("input", () => {
             }
         })
         .catch(error => {
+            spinner.classList.add('hidden');
             console.error('Search error:', error);
         });
     }, 300);
 });
 
+// Utility to escape HTML for safety where needed
+function escapeHtml(unsafe) {
+    return (unsafe || '').replace(/[&<"'`=\/]/g, function (s) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;','/':'\/','`':'&#96;','=':'&#61;'}[s];
+    });
+}
+
 function performSearch(query) {
     const genreParam = selectedGenre ? `&genre=${encodeURIComponent(selectedGenre)}` : '';
     const tahunParam = selectedTahun ? `&tahun=${selectedTahun}` : '';
-    
-    fetch(`/api/search?q=${encodeURIComponent(query)}&algo=bm&case=true${genreParam}${tahunParam}`, {
+    const algo = document.getElementById('algoSelect').value;
+    const spinner = document.getElementById('searchSpinner');
+    const info = document.getElementById('searchInfo');
+
+    spinner.classList.remove('hidden');
+    info.classList.add('hidden');
+
+    fetch(`/api/search?q=${encodeURIComponent(query)}&algo=${encodeURIComponent(algo)}&case=true${genreParam}${tahunParam}`, {
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
             'Accept': 'application/json'
@@ -576,7 +638,10 @@ function performSearch(query) {
     })
     .then(response => response.json())
     .then(data => {
+        spinner.classList.add('hidden');
         if (data.success && data.data && data.data.results) {
+            info.textContent = `${data.data.pagination.total} hasil • ${data.data.algorithm.toUpperCase()} • ${Math.round(data.data.process_time_ms)} ms`;
+            info.classList.remove('hidden');
             renderSearchResults(data.data.results);
         } else {
             hasilPencarianSection.classList.remove("hidden");
@@ -584,6 +649,7 @@ function performSearch(query) {
         }
     })
     .catch(error => {
+        spinner.classList.add('hidden');
         console.error('Search error:', error);
         hasilPencarianSection.classList.remove("hidden");
         hasilPencarianList.innerHTML = '<p class="text-red-600 col-span-4">Terjadi kesalahan saat mencari.</p>';
@@ -599,13 +665,17 @@ function renderSearchResults(results) {
     }
 
     hasilPencarianList.innerHTML = results.map(b => {
+        const snippet = (b.matches && b.matches.judul && b.matches.judul.snippet) ? b.matches.judul.snippet : '';
+        const cover = b.cover_url ? `<img src="${b.cover_url}" class="w-full h-40 object-cover rounded-lg mb-2" onerror="this.style.display='none'">` : `<div class="w-full h-40 bg-gray-200 rounded-lg shadow-md flex items-center justify-center mb-2"><i class="fas fa-book text-4xl text-gray-400"></i></div>`;
+        const avail = b.available ? `<span class="text-xs text-green-700 font-semibold">Tersedia (${b.stok})</span>` : `<span class="text-xs text-red-600 font-semibold">Habis</span>`;
         return `
             <div class="w-full">
-                <div class="w-full h-64 bg-gray-200 rounded-lg shadow-md flex items-center justify-center mb-2">
-                    <i class="fas fa-book text-4xl text-gray-400"></i>
+                ${cover}
+                <p class="mt-2 text-sm font-semibold">${escapeHtml(b.judul || 'N/A')}</p>
+                <div class="flex items-center justify-between mb-2">
+                    ${snippet ? `<p class="text-xs text-gray-700">${snippet}</p>` : `<p class="text-xs text-gray-500">${b.genre || 'N/A'} • ${b.tahun_terbit || 'N/A'}</p>`}
+                    ${avail}
                 </div>
-                <p class="mt-2 text-sm font-semibold">${b.judul || 'N/A'}</p>
-                <p class="text-xs text-gray-500 mb-2">${b.genre || 'N/A'} • ${b.tahun_terbit || 'N/A'}</p>
                 <button onclick="pinjamBuku(${b.id}, '${(b.judul || '').replace(/'/g, "\\'")}')" 
                         class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-semibold">
                     <i class="fas fa-book-reader mr-1"></i> Pinjam Buku
@@ -667,75 +737,77 @@ document.addEventListener("click", (e) => {
 </script>
 
 <script>
-const books = allBooks; // ambil data buku dari array utama
+if (typeof allBooks !== 'undefined' && Array.isArray(allBooks)) {
+    const books = allBooks; // ambil data buku dari array utama
 
-const searchInput = document.getElementById("searchInput");
-const searchResults = document.getElementById("searchResults");
-const bookGrid = document.getElementById("rekomendasiList");
+    const searchInput = document.getElementById("searchInput");
+    const searchResults = document.getElementById("searchResults");
+    const bookGrid = document.getElementById("rekomendasiList");
 
-function renderBooks(list) {
-    if (!list.length) {
-        bookGrid.innerHTML = `<p class='text-red-600'>Buku tidak ditemukan.</p>`;
-        return;
+    function renderBooks(list) {
+        if (!list.length) {
+            bookGrid.innerHTML = `<p class='text-red-600'>Buku tidak ditemukan.</p>`;
+            return;
+        }
+
+        bookGrid.innerHTML = list.map(b => `
+            <div class="w-32">
+                <img src="/${b.img}" class="w-full rounded-lg shadow-md">
+                <p class="mt-2 text-sm font-semibold">${b.title}</p>
+                <p class="text-xs text-gray-500">${b.jenis} • ${b.bahasa}</p>
+                <p class="text-xs text-gray-500">Tahun: ${b.tahun}</p>
+            </div>
+        `).join("");
     }
 
-    bookGrid.innerHTML = list.map(b => `
-        <div class="w-32">
-            <img src="/${b.img}" class="w-full rounded-lg shadow-md">
-            <p class="mt-2 text-sm font-semibold">${b.title}</p>
-            <p class="text-xs text-gray-500">${b.jenis} • ${b.bahasa}</p>
-            <p class="text-xs text-gray-500">Tahun: ${b.tahun}</p>
-        </div>
-    `).join("");
-}
+    // EVENT SEARCH (fallback client-side)
+    searchInput.addEventListener("input", () => {
+        const q = searchInput.value.toLowerCase();
 
-// EVENT SEARCH
-searchInput.addEventListener("input", () => {
-    const q = searchInput.value.toLowerCase();
+        if (q === "") {
+            searchResults.classList.add("hidden");
+            renderBooks(allBooks); // kembali tampilkan semua
+            return;
+        }
 
-    if (q === "") {
-        searchResults.classList.add("hidden");
-        renderBooks(allBooks); // kembali tampilkan semua
-        return;
-    }
+        const matches = books.filter(b =>
+            b.title.toLowerCase().includes(q)
+        );
 
-    const matches = books.filter(b =>
-        b.title.toLowerCase().includes(q)
-    );
+        // tampilkan dropdown teks
+        searchResults.innerHTML = "";
+        if (!matches.length) {
+            searchResults.innerHTML = `<p class="p-3 text-gray-500">Tidak ditemukan</p>`;
+        } else {
+            matches.forEach(m => {
+                let div = document.createElement("div");
+                div.textContent = m.title;
+                div.className = "p-3 cursor-pointer hover:bg-yellow-100 rounded-lg";
 
-    // tampilkan dropdown teks
-    searchResults.innerHTML = "";
-    if (!matches.length) {
-        searchResults.innerHTML = `<p class="p-3 text-gray-500">Tidak ditemukan</p>`;
-    } else {
-        matches.forEach(m => {
-            let div = document.createElement("div");
-            div.textContent = m.title;
-            div.className = "p-3 cursor-pointer hover:bg-yellow-100 rounded-lg";
+                // KLIK → tampilkan buku lengkap di rekomendasi
+                div.addEventListener("click", () => {
+                    searchInput.value = m.title;
+                    searchResults.classList.add("hidden");
+                    renderBooks([m]);
+                });
 
-            // KLIK → tampilkan buku lengkap di rekomendasi
-            div.addEventListener("click", () => {
-                searchInput.value = m.title;
-                searchResults.classList.add("hidden");
-                renderBooks([m]);
+                searchResults.appendChild(div);
             });
+        }
 
-            searchResults.appendChild(div);
-        });
-    }
+        searchResults.classList.remove("hidden");
 
-    searchResults.classList.remove("hidden");
+        // auto render saat mengetik
+        renderBooks(matches);
+    });
 
-    // auto render saat mengetik
-    renderBooks(matches);
-});
-
-// klik luar → tutup dropdown
-document.addEventListener("click", (e) => {
-    if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-        searchResults.classList.add("hidden");
-    }
-});
+    // klik luar → tutup dropdown
+    document.addEventListener("click", (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.add("hidden");
+        }
+    });
+}
 </script>
 
 <script>
@@ -808,6 +880,43 @@ items.forEach((btn, index) => {
     });
 });
 highlight.style.top = "80px";
+</script>
+
+<script>
+// Prevent infinite image onerror loops: set placeholder only once, hide if placeholder fails
+(function(){
+    // Use an existing placeholder image (book.png) to avoid 404s
+    const placeholder = "{{ asset('images/book.png') }}";
+    window.addEventListener('error', function(e){
+        const t = e.target;
+        if (!t || t.tagName !== 'IMG') return;
+        try {
+            if (t.dataset.errored) return; // already handled
+            t.dataset.errored = '1';
+            if (t.src && (t.src.indexOf('book.png') !== -1)) {
+                console.warn('Backup image failed to load — hiding element to avoid repeated requests', t.src);
+                t.style.display = 'none';
+            } else {
+                t.src = placeholder;
+            }
+        } catch (err) {
+            console.error('Image error handler failed', err);
+        }
+    }, true);
+})();
+
+// Detect frequent full-page reloads in a session
+(function(){
+    try {
+        const key = 'pageReloads';
+        const c = Number(sessionStorage.getItem(key) || 0) + 1;
+        sessionStorage.setItem(key, c);
+        console.info('page load count (session):', c);
+        if (c > 5) console.warn('High reload count detected in this session:', c);
+        // Reset counter after 60 seconds inactivity
+        setTimeout(() => sessionStorage.setItem(key, 0), 60000);
+    } catch (err) { /* ignore */ }
+})();
 </script>
 
 </body>

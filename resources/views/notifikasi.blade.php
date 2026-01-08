@@ -12,11 +12,28 @@
   <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
 
     <!-- NOTIFIKASI BIASA (BIRU) -->
-    <div class="space-y-4" id="notif-list"></div>
+    <div class="space-y-4">
+      <div id="notif-list"></div>
+    </div>
 
 
     <!-- PESAN (ABU-ABU) -->
-    <div class="space-y-4" id="message-list"></div>
+    <div class="space-y-4">
+      <!-- Compose message -->
+      <div class="bg-white p-4 rounded-xl shadow">
+        <h3 class="font-semibold mb-2">Tulis Pesan ke Admin/Staff</h3>
+        <textarea id="compose-isi" rows="3" class="w-full border rounded p-2" placeholder="Tulis pesan..."></textarea>
+        <div class="flex items-center gap-3 mt-2">
+          <select id="compose-penerima" class="border rounded p-2">
+            <option value="">-- Pilih penerima (opsional) --</option>
+          </select>
+          <label class="flex items-center gap-2"><input type="checkbox" id="compose-to-admins"> Kirim ke semua admin/staff</label>
+          <button id="compose-send" class="ml-auto bg-blue-600 text-white px-3 py-1 rounded">Kirim</button>
+        </div>
+      </div>
+
+      <div id="message-list"></div>
+    </div>
 
   </div>
 
@@ -97,12 +114,52 @@
         const msgList = document.getElementById('message-list');
         msgList.innerHTML = '';
         messages.data.forEach(m => msgList.appendChild(renderMessageItem(m)));
+      
+        // load admin/staff list for composer
+        try {
+          const resp = await fetchJSON('/api/pengguna/admins');
+          const sel = document.getElementById('compose-penerima');
+          // clear options except first
+          sel.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
+          resp.data.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.id; opt.textContent = a.nama + ' (' + a.peran + ')';
+            sel.appendChild(opt);
+          });
+        } catch (e) {
+          // ignore if fails
+        }
       } catch (e) {
         console.error(e);
       }
     }
 
     loadAll();
+
+    // Compose send handler
+    document.getElementById('compose-send').addEventListener('click', async () => {
+      const isi = document.getElementById('compose-isi').value.trim();
+      const penerima = document.getElementById('compose-penerima').value;
+      const toAdmins = document.getElementById('compose-to-admins').checked;
+      if (!isi) return alert('Isi pesan tidak boleh kosong');
+      try {
+        const body = { isi };
+        if (penerima) body.penerima_id = parseInt(penerima);
+        if (toAdmins) body.to_admins = true;
+        await fetchJSON('/api/pesan/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        document.getElementById('compose-isi').value = '';
+        document.getElementById('compose-to-admins').checked = false;
+        document.getElementById('compose-penerima').value = '';
+        await loadAll();
+        alert('Pesan terkirim');
+      } catch (e) {
+        alert('Gagal mengirim pesan');
+      }
+    });
   </script>
 </body>
 </html>

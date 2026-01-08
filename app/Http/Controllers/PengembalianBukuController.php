@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Pinjaman;
 use App\Models\Buku;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class PengembalianBukuController extends Controller
 {
@@ -39,11 +40,15 @@ class PengembalianBukuController extends Controller
         // Filter status jika ada
         if ($request->has('status') && $request->status) {
             if ($request->status === 'Terlambat') {
-                $query->where('status', 'sedang_dipinjam')
-                    ->whereDate('tanggal_jatuh_tempo', '<', Carbon::now());
+                $query->where('status', 'sedang_dipinjam');
+                if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+                    $query->whereDate('tanggal_jatuh_tempo', '<', Carbon::now());
+                }
             } elseif ($request->status === 'Sedang Dipinjam') {
-                $query->where('status', 'sedang_dipinjam')
-                    ->whereDate('tanggal_jatuh_tempo', '>=', Carbon::now());
+                $query->where('status', 'sedang_dipinjam');
+                if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+                    $query->whereDate('tanggal_jatuh_tempo', '>=', Carbon::now());
+                }
             } elseif ($request->status === 'Dapat Diambil') {
                 $query->where('status', 'dapat_diambil');
             } elseif ($request->status === 'Menunggu Approval') {
@@ -57,14 +62,20 @@ class PengembalianBukuController extends Controller
 
         // Hitung statistik
         $total = Pinjaman::where('pengguna_id', $user->id)->count();
-        $terlambat = Pinjaman::where('pengguna_id', $user->id)
-            ->where('status', 'sedang_dipinjam')
-            ->whereDate('tanggal_jatuh_tempo', '<', Carbon::now())
-            ->count();
-        $sedangDipinjam = Pinjaman::where('pengguna_id', $user->id)
-            ->where('status', 'sedang_dipinjam')
-            ->whereDate('tanggal_jatuh_tempo', '>=', Carbon::now())
-            ->count();
+        $terlambatQuery = Pinjaman::where('pengguna_id', $user->id)
+            ->where('status', 'sedang_dipinjam');
+        if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+            $terlambatQuery->whereDate('tanggal_jatuh_tempo', '<', Carbon::now());
+        } else {
+            $terlambatQuery->whereRaw('1 = 0');
+        }
+        $terlambat = $terlambatQuery->count();
+        $sedangDipinjamQuery = Pinjaman::where('pengguna_id', $user->id)
+            ->where('status', 'sedang_dipinjam');
+        if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+            $sedangDipinjamQuery->whereDate('tanggal_jatuh_tempo', '>=', Carbon::now());
+        }
+        $sedangDipinjam = $sedangDipinjamQuery->count();
         $dapatDiambil = Pinjaman::where('pengguna_id', $user->id)
             ->where('status', 'dapat_diambil')
             ->count();

@@ -7,6 +7,7 @@ use App\Models\Pinjaman;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class NotifikasiController extends Controller
 {
@@ -75,16 +76,26 @@ class NotifikasiController extends Controller
         switch ($tipe) {
             case 'success':
                 $judul = 'Peminjaman Berhasil';
-                $pesan = "Buku \"{$pinjaman->buku->judul}\" berhasil dipinjam. Jatuh tempo: ".Carbon::parse($pinjaman->tanggal_jatuh_tempo)->format('d M Y');
+                $pesan = "Buku \"{$pinjaman->buku->judul}\" berhasil dipinjam.";
+                if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo') && $pinjaman->tanggal_jatuh_tempo) {
+                    try {
+                        $pesan .= ' Jatuh tempo: '.Carbon::parse($pinjaman->tanggal_jatuh_tempo)->format('d M Y');
+                    } catch (\Exception $e) {}
+                }
                 $link = '/pengembalian-buku';
                 break;
             case 'warning':
                 $judul = 'Peringatan Jatuh Tempo';
-                $hariTersisa = Carbon::now()->diffInDays(Carbon::parse($pinjaman->tanggal_jatuh_tempo), false);
-                if ($hariTersisa < 0) {
-                    $pesan = "Buku \"{$pinjaman->buku->judul}\" terlambat ".abs($hariTersisa).' hari. Segera kembalikan!';
-                } else {
-                    $pesan = "Buku \"{$pinjaman->buku->judul}\" harus dikembalikan dalam {$hariTersisa} hari lagi.";
+                $pesan = "Periksa status peminjaman buku \"{$pinjaman->buku->judul}\".";
+                if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo') && $pinjaman->tanggal_jatuh_tempo) {
+                    try {
+                        $hariTersisa = Carbon::now()->diffInDays(Carbon::parse($pinjaman->tanggal_jatuh_tempo), false);
+                        if ($hariTersisa < 0) {
+                            $pesan = "Buku \"{$pinjaman->buku->judul}\" terlambat ".abs($hariTersisa).' hari. Segera kembalikan!';
+                        } else {
+                            $pesan = "Buku \"{$pinjaman->buku->judul}\" harus dikembalikan dalam {$hariTersisa} hari lagi.";
+                        }
+                    } catch (\Exception $e) {}
                 }
                 $link = '/pengembalian-buku';
                 break;

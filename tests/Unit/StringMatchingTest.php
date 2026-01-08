@@ -119,4 +119,15 @@ class StringMatchingTest extends TestCase
         $result = StringMatching::matchPositions('short', 'much longer pattern');
         $this->assertEquals([], $result, 'Should return empty array when pattern is longer than text');
     }
+
+    public function test_multibyte_unicode()
+    {
+        $text = 'Pendidikan dan pendidikan';
+        $res = StringMatching::matchPositions($text, 'pendidikan', 'bm', true);
+        $this->assertEquals([0, 15], $res, 'Multibyte BM failed');
+
+        $text2 = 'Téknologi & Ilmu';
+        $res2 = StringMatching::matchPositions($text2, 'téknologi', 'kmp', true);
+        $this->assertEquals([0], $res2, 'KMP with accented char failed');
+    }
 }

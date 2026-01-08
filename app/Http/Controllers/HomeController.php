@@ -9,6 +9,7 @@ use App\Models\Buku;
 use App\Models\Activity;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 
 class HomeController extends Controller
 {
@@ -24,24 +25,36 @@ class HomeController extends Controller
             ->where('status', 'sedang_dipinjam')
             ->count();
 
-        // Hitung hari tersisa untuk pengembalian terdekat
-        $pinjamanTerdekat = Pinjaman::where('pengguna_id', $user->id)
-            ->where('status', 'sedang_dipinjam')
-            ->whereNotNull('tanggal_jatuh_tempo')
-            ->orderBy('tanggal_jatuh_tempo', 'asc')
-            ->first();
-
+        // Hitung hari tersisa untuk pengembalian terdekat (defensif jika kolom tidak tersedia)
         $hariTersisa = null;
-        if ($pinjamanTerdekat && $pinjamanTerdekat->tanggal_jatuh_tempo) {
-            $hariTersisa = max(0, Carbon::now()->diffInDays(Carbon::parse($pinjamanTerdekat->tanggal_jatuh_tempo), false));
+        if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+            try {
+                $pinjamanTerdekat = Pinjaman::where('pengguna_id', $user->id)
+                    ->where('status', 'sedang_dipinjam')
+                    ->whereNotNull('tanggal_jatuh_tempo')
+                    ->orderBy('tanggal_jatuh_tempo', 'asc')
+                    ->first();
+                
+                if ($pinjamanTerdekat && $pinjamanTerdekat->tanggal_jatuh_tempo) {
+                    $hariTersisa = max(0, Carbon::now()->diffInDays(Carbon::parse($pinjamanTerdekat->tanggal_jatuh_tempo), false));
+                }
+            } catch (\Exception $e) {
+                $hariTersisa = null;
+            }
         }
 
         // Buku yang telah dibaca bulan ini
-        $bukuBulanIni = Pinjaman::where('pengguna_id', $user->id)
-            ->where('status', 'dikembalikan')
-            ->whereMonth('tanggal_kembali', Carbon::now()->month)
-            ->whereYear('tanggal_kembali', Carbon::now()->year)
-            ->count();
+        $bukuBulanIniQuery = Pinjaman::where('pengguna_id', $user->id)
+            ->where('status', 'dikembalikan');
+        if (Schema::hasColumn('pinjaman', 'tanggal_kembali')) {
+            $bukuBulanIniQuery->whereMonth('tanggal_kembali', Carbon::now()->month)
+                ->whereYear('tanggal_kembali', Carbon::now()->year);
+        } else {
+            $start = Carbon::now()->startOfMonth();
+            $end = Carbon::now()->endOfMonth();
+            $bukuBulanIniQuery->whereBetween('updated_at', [$start, $end]);
+        }
+        $bukuBulanIni = $bukuBulanIniQuery->count();
 
         // Genre favorit berdasarkan buku yang dipinjam
         $genreFavorit = Pinjaman::where('pengguna_id', $user->id)
@@ -75,71 +88,62 @@ class HomeController extends Controller
 
     private function getRekomendasiKNN($penggunaId, $k = 5)
     {
-        // Ambil semua peminjaman
-        $semuaPinjaman = Pinjaman::with('buku')->get();
-
-        // Ambil buku yang pernah dipinjam user ini
-        $bukuUser = Pinjaman::where('pengguna_id', $penggunaId)
-            ->pluck('buku_id')
-            ->unique()
-            ->toArray();
-
-        if (empty($bukuUser)) {
-            // Jika user belum pernah pinjam, return buku populer
-            return Buku::orderBy('stok', 'desc')
-                ->limit(10)
-                ->get();
+        // Caching ringkas untuk mengurangi hit perhitungan berulang
+        $cacheKey = "rekomendasi:pengguna:{$penggunaId}";
+        $cached = cache()->get($cacheKey);
+        if ($cached) {
+            return Buku::whereIn('id', $cached)->where('stok', '>', 0)->get();
         }
 
-        // Ambil genre dari buku yang dipinjam user
-        $genreUser = Buku::whereIn('id', $bukuUser)
-            ->pluck('genre')
-            ->filter()
-            ->unique()
-            ->toArray();
+        // Ambil hanya peminjaman yang relevan (dikembalikan atau sedang dipinjam)
+        $semuaPinjaman = Pinjaman::whereIn('status', ['dikembalikan', 'sedang_dipinjam'])->get();
 
-        // Cari user lain yang pinjam buku dengan genre yang sama
-        $userSerupa = Pinjaman::where('pengguna_id', '!=', $penggunaId)
-            ->whereHas('buku', function($q) use ($genreUser) {
-                $q->whereIn('genre', $genreUser);
-            })
-            ->selectRaw('pengguna_id, COUNT(*) as jumlah')
-            ->groupBy('pengguna_id')
-            ->orderByDesc('jumlah')
-            ->limit($k)
-            ->pluck('pengguna_id')
-            ->toArray();
+        // Gunakan service KNN
+        $knn = new \App\Services\KnnRekomendasi();
+        $rekomList = $knn->hitungRekomendasi($penggunaId, $semuaPinjaman, $k, 10);
 
-        if (empty($userSerupa)) {
-            // Jika tidak ada user serupa, return buku dengan genre yang sama
-            return Buku::whereIn('genre', $genreUser)
-                ->whereNotIn('id', $bukuUser)
-                ->where('stok', '>', 0)
-                ->limit(10)
-                ->get();
+        // Jika service tidak mengembalikan rekomendasi, fallback ke genre/populer
+        if (empty($rekomList)) {
+            $bukuUser = Pinjaman::where('pengguna_id', $penggunaId)
+                ->pluck('buku_id')
+                ->unique()
+                ->toArray();
+
+            $genreUser = Buku::whereIn('id', $bukuUser)
+                ->pluck('genre')
+                ->filter()
+                ->unique()
+                ->toArray();
+
+            if (!empty($genreUser)) {
+                $fallback = Buku::whereIn('genre', $genreUser)
+                    ->whereNotIn('id', $bukuUser)
+                    ->where('stok', '>', 0)
+                    ->limit(10)
+                    ->get();
+            } else {
+                $fallback = Buku::orderByDesc('stok')->limit(10)->get();
+            }
+
+            // Cache fallback IDs for short period
+            cache()->put($cacheKey, $fallback->pluck('id')->toArray(), now()->addMinutes(30));
+            return $fallback;
         }
 
-        // Ambil buku yang dipinjam user serupa tapi belum dipinjam user ini
-        $bukuRekomendasi = Pinjaman::whereIn('pengguna_id', $userSerupa)
-            ->whereNotIn('buku_id', $bukuUser)
-            ->with('buku')
-            ->selectRaw('buku_id, COUNT(*) as frekuensi')
-            ->groupBy('buku_id')
-            ->orderByDesc('frekuensi')
-            ->limit(10)
-            ->get()
-            ->pluck('buku')
-            ->filter();
+        $bukuIds = array_column($rekomList, 'buku_id');
 
-        if ($bukuRekomendasi->isEmpty()) {
-            // Fallback: buku dengan genre yang sama
-            return Buku::whereIn('genre', $genreUser)
-                ->whereNotIn('id', $bukuUser)
-                ->where('stok', '>', 0)
-                ->limit(10)
-                ->get();
+        // Ambil model buku dan urutkan berdasarkan skor rekomendasi dari service
+        $bukuModels = Buku::whereIn('id', $bukuIds)->get()->keyBy('id');
+        $ordered = [];
+        foreach ($bukuIds as $id) {
+            if (isset($bukuModels[$id]) && ($bukuModels[$id]->stok ?? 0) > 0) {
+                $ordered[] = $bukuModels[$id];
+            }
         }
 
-        return $bukuRekomendasi;
+        // Cache IDs
+        cache()->put($cacheKey, collect($ordered)->pluck('id')->toArray(), now()->addMinutes(30));
+
+        return collect($ordered);
     }
 }

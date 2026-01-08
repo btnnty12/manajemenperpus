@@ -22,7 +22,7 @@
 
 <main class="flex-1 p-8">
     <div class="flex justify-end items-center space-x-6 mb-6 relative">
-        <button id="notifBtn" onclick="toggleNotifPopup()" class="text-2xl hover:opacity-80 relative">🔔
+        <button id="notifBtn" class="text-2xl hover:opacity-80 relative">🔔
             <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
         </button>
         <div class="bg-blue-500 w-10 h-10 rounded-full text-white flex items-center justify-center font-bold cursor-pointer overflow-hidden">

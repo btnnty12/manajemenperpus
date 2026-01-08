@@ -43,6 +43,11 @@ class PesanController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
+        // Hanya admin/staff yang bisa menggunakan endpoint ini untuk mengirim pesan
+        // ke pengguna tertentu. Untuk pengguna biasa (pengguna role), gunakan
+        // endpoint `/api/pesan/send` (storeForUser) yang dapat mengirimkan pesan
+        // ke semua admin/staff atau ke admin tertentu.
+
         if (! $user->isAdmin() && ! $user->isStaff()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
@@ -72,6 +77,75 @@ class PesanController extends Controller
         ]);
 
         return response()->json(['data' => $msg], 201);
+    }
+
+    /**
+     * Allow an authenticated user (including regular pengguna) to send a message
+     * to all admins/staff or to a specific admin/staff (if penerima_id provided).
+     */
+    public function storeForUser(Request $request)
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $validated = $request->validate([
+            'isi' => 'required|string',
+            'penerima_id' => 'nullable|exists:pengguna,id',
+            'to_admins' => 'nullable|boolean',
+        ]);
+
+        $isi = $validated['isi'];
+
+        // Jika penerima_id diberikan, pastikan penerima adalah admin/staff
+        if (! empty($validated['penerima_id'])) {
+            $penerima = Pengguna::find($validated['penerima_id']);
+            if (! $penerima || (! $penerima->isAdmin() && ! $penerima->isStaff())) {
+                return response()->json(['message' => 'Penerima harus admin atau staff'], 422);
+            }
+
+            $msg = Pesan::create([
+                'pengirim_id' => $user->id,
+                'penerima_id' => $penerima->id,
+                'isi' => $isi,
+            ]);
+
+            Notifikasi::create([
+                'pengguna_id' => $penerima->id,
+                'judul' => 'Pesan dari Pengguna',
+                'pesan' => 'Anda menerima pesan dari '.$user->nama,
+                'tipe' => 'info',
+                'link' => '/notifikasi',
+            ]);
+
+            return response()->json(['data' => $msg], 201);
+        }
+
+        // Jika ingin mengirim ke semua admin/staff
+        if (! empty($validated['to_admins']) && $validated['to_admins']) {
+            $admins = Pengguna::whereIn('peran', ['admin', 'staff'])->get();
+            $created = [];
+            foreach ($admins as $adm) {
+                $m = Pesan::create([
+                    'pengirim_id' => $user->id,
+                    'penerima_id' => $adm->id,
+                    'isi' => $isi,
+                ]);
+                Notifikasi::create([
+                    'pengguna_id' => $adm->id,
+                    'judul' => 'Pesan dari Pengguna',
+                    'pesan' => 'Anda menerima pesan dari '.$user->nama,
+                    'tipe' => 'info',
+                    'link' => '/notifikasi',
+                ]);
+                $created[] = $m;
+            }
+
+            return response()->json(['data' => $created], 201);
+        }
+
+        return response()->json(['message' => 'Target penerima tidak ditentukan'], 422);
     }
 
     public function markRead($id)

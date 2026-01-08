@@ -45,6 +45,7 @@ class KelolaBukuController extends Controller
         $buku = Buku::orderBy('created_at', 'desc')->get();
         $stats = [
             'totalJudul' => Buku::count(),
+            'totalEksemplar' => Buku::sum('stok'),
             'tersedia' => Buku::where('stok', '>', 0)->count(),
             'dipinjam' => Pinjaman::where('status', 'sedang_dipinjam')->count(),
             'bukuBaruBulanIni' => Buku::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count(),

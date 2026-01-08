@@ -69,12 +69,19 @@
                         @forelse($anggota ?? [] as $item)
                         @php
                             // Hitung total denda dari pinjaman yang belum dikembalikan atau telat
-                            $totalDenda = \App\Models\Pinjaman::where('pengguna_id', $item->id)
-                                ->where(function($q) {
-                                    $q->where('status', 'sedang_dipinjam')
-                                      ->orWhere('status', 'dikembalikan');
-                                })
-                                ->sum('denda');
+                            $totalDenda = 0;
+                            try {
+                                if (\Illuminate\Support\Facades\Schema::hasColumn('pinjaman', 'denda')) {
+                                    $totalDenda = \App\Models\Pinjaman::where('pengguna_id', $item->id)
+                                        ->where(function($q) {
+                                            $q->where('status', 'sedang_dipinjam')
+                                              ->orWhere('status', 'dikembalikan');
+                                        })
+                                        ->sum('denda') ?? 0;
+                                }
+                            } catch (\Exception $e) {
+                                $totalDenda = 0;
+                            }
                             
                             // Cek apakah ada pinjaman aktif
                             $hasActiveLoan = \App\Models\Pinjaman::where('pengguna_id', $item->id)
@@ -344,4 +351,3 @@
         });
     </script>
 </x-staff-layout>
-
