@@ -197,6 +197,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'show'])->name('kelola-buku.show');
     Route::put('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'update'])->name('kelola-buku.update');
     Route::delete('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'destroy'])->name('kelola-buku.destroy');
+    // Sinkronisasi data dummy ke DB (protected oleh middleware admin)
+    Route::post('/kelola-buku/sync', [\App\Http\Controllers\KelolaBukuController::class, 'syncDummy'])->name('kelola-buku.sync');
     Route::post('/kelola-buku/import', [StaffBukuController::class, 'import'])->name('kelola-buku.import');
     Route::get('/laporan-peminjaman', [AdminController::class, 'laporanPeminjaman'])->name('laporan-peminjaman');
     Route::view('/kelola-user', 'kelola-user')->name('kelola-user');
@@ -217,6 +219,8 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
     Route::get('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'show'])->name('kelola-buku.show');
     Route::put('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'update'])->name('kelola-buku.update');
     Route::delete('/kelola-buku/{id}', [\App\Http\Controllers\KelolaBukuController::class, 'destroy'])->name('kelola-buku.destroy');
+    // Sinkronisasi data dummy ke DB (protected oleh middleware staff)
+    Route::post('/kelola-buku/sync', [\App\Http\Controllers\KelolaBukuController::class, 'syncDummy'])->name('staff.kelola-buku.sync');
     Route::view('/kelola-buku/import', 'staff.kelola-buku-import')->name('kelola-buku.import');
     Route::get('/kelola-buku/export', [StaffBukuController::class, 'export'])->name('kelola-buku.export');
     Route::view('/laporan-peminjaman', 'staff.laporan-peminjaman')->name('laporan-peminjaman');

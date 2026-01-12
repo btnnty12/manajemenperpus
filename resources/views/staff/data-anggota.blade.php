@@ -1,7 +1,43 @@
 @php
     $title = 'Data Anggota - Staff';
     use App\Models\Pengguna;
-    $anggota = Pengguna::where('peran', 'pengguna')->get();
+    use App\Models\Pinjaman;
+    use Illuminate\Support\Facades\DB;
+
+    // Server-side filtering and pagination via query params
+    $perPage = request('per_page', 10);
+    $q = trim(request('q', ''));
+    $statusFilter = request('status', '');
+    $dateFilter = request('date', '');
+
+    $anggotaQuery = Pengguna::where('peran', 'pengguna');
+
+    if ($q !== '') {
+        $anggotaQuery->where(function($sub) use ($q) {
+            $sub->where('nama', 'like', "%{$q}%")
+                ->orWhere('email', 'like', "%{$q}%");
+        });
+    }
+
+    if ($statusFilter === 'Aktif') {
+        $anggotaQuery->whereExists(function($query) {
+            $query->select(DB::raw(1))
+                ->from('pinjaman')
+                ->whereColumn('pinjaman.pengguna_id', 'pengguna.id');
+        });
+    } elseif ($statusFilter === 'Nonaktif') {
+        $anggotaQuery->whereNotExists(function($query) {
+            $query->select(DB::raw(1))
+                ->from('pinjaman')
+                ->whereColumn('pinjaman.pengguna_id', 'pengguna.id');
+        });
+    }
+
+    if ($dateFilter) {
+        $anggotaQuery->whereDate('created_at', $dateFilter);
+    }
+
+    $anggota = $anggotaQuery->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
 @endphp
 <x-staff-layout :title="$title">
     <section class="px-2 sm:px-4 pb-10 space-y-6">
@@ -39,18 +75,26 @@
         </div>
 
         <div class="bg-white rounded-xl shadow p-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <form id="filterForm" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                 <div class="bg-white rounded-lg px-3 py-2 flex items-center border">
                     <x-icon name="search" class="w-5 h-5 text-gray-500 mr-2" />
-                    <input type="text" id="searchInput" placeholder="Cari anggota (nama/email)" class="w-full outline-none text-sm" onkeyup="filterTable()">
+                    <input type="text" name="q" id="searchInput" placeholder="Cari anggota (nama/email)" value="{{ request('q') }}" class="w-full outline-none text-sm" oninput="debouncedSubmit()">
                 </div>
-                <select id="statusFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="filterTable()">
-                    <option value="">Semua Status</option>
-                    <option value="Aktif">Aktif</option>
-                    <option value="Nonaktif">Nonaktif</option>
+
+                <select name="status" id="statusFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="debouncedSubmit()">
+                    <option value="" {{ request('status') == '' ? 'selected' : '' }}>Semua Status</option>
+                    <option value="Aktif" {{ request('status') == 'Aktif' ? 'selected' : '' }}>Aktif</option>
+                    <option value="Nonaktif" {{ request('status') == 'Nonaktif' ? 'selected' : '' }}>Nonaktif</option>
                 </select>
-                <input type="date" id="dateFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="filterTable()">
-            </div>
+
+                <input type="date" name="date" id="dateFilter" value="{{ request('date') }}" class="border rounded-lg px-3 py-2 text-sm" onchange="debouncedSubmit()">
+
+                <select name="per_page" id="perPageSelect" class="border rounded-lg px-3 py-2 text-sm" onchange="debouncedSubmit()">
+                    <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 / halaman</option>
+                    <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 / halaman</option>
+                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 / halaman</option>
+                </select>
+            </form>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -133,139 +177,33 @@
                         @endforelse
                     </tbody>
                 </table>
-                <div id="noResults" class="hidden text-center py-8 text-gray-500">
+
+                @if($anggota->isEmpty())
+                <div class="text-center py-8 text-gray-500">
                     <p>Tidak ada data yang ditemukan</p>
+                </div>
+                @endif
+
+                <div class="mt-4">
+                    {{ $anggota->appends(request()->query())->links() }}
                 </div>
             </div>
         </div>
     </section>
 
     <script>
-        // Menggunakan StringMatchingService dari service
-        const StringMatching = window.StringMatchingService;
-
-        // Fungsi untuk log performa (mengirim ke backend)
-        async function logSearchPerformance(keyword, algorithm, processTime, resultCount) {
-            if (!keyword || keyword.trim() === '') return;
-            
-            try {
-                const response = await fetch('{{ route("staff.log-search") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        kata_kunci: keyword,
-                        algorithm: algorithm,
-                        process_time_ms: parseFloat(processTime.toFixed(5)),
-                        jumlah_hasil: resultCount
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to log');
-                }
-            } catch (error) {
-                // Silent fail - tidak tampilkan error di UI
-                // Log hanya untuk debugging
-                if (console && console.log) {
-                    console.log('Search performance logged:', { 
-                        algorithm, 
-                        processTime: processTime.toFixed(5) + 'ms', 
-                        resultCount 
-                    });
-                }
-            }
+        // Server-side search: debounce and submit the GET form
+        let _debounceTimer;
+        function debouncedSubmit() {
+            clearTimeout(_debounceTimer);
+            _debounceTimer = setTimeout(() => {
+                document.getElementById('filterForm').submit();
+            }, 250);
         }
 
-        // ======================================================
-        // FUNGSI FILTER TABLE DENGAN ALGORITMA
-        // ======================================================
-        let searchTimeout;
-        
-        function filterTable() {
-            // Debounce untuk menghindari terlalu banyak eksekusi
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                executeSearch();
-            }, 150); // Delay 150ms
-        }
-        
-        async function executeSearch() {
-            const searchInput = document.getElementById('searchInput');
-            const statusFilter = document.getElementById('statusFilter');
-            const rows = document.querySelectorAll('.anggota-row');
-            const noResults = document.getElementById('noResults');
-            
-            if (!searchInput || !statusFilter || !rows.length) return;
-            
-            const searchValue = searchInput.value.trim().toLowerCase();
-            const statusValue = statusFilter.value;
-            let visibleCount = 0;
-
-            // Jika tidak ada input search, tampilkan semua berdasarkan filter status
-            if (!searchValue) {
-                rows.forEach(row => {
-                    const status = row.getAttribute('data-status');
-                    const matchesStatus = !statusValue || status === statusValue;
-                    row.style.display = matchesStatus ? '' : 'none';
-                    if (matchesStatus) visibleCount++;
-                });
-                
-                if (visibleCount === 0) {
-                    noResults.classList.remove('hidden');
-                } else {
-                    noResults.classList.add('hidden');
-                }
-                return;
-            }
-
-            // Pilih algoritma terbaik berdasarkan panjang pattern
-            const algorithm = StringMatching.selectBestAlgorithm(searchValue);
-            
-            // Mulai timer untuk mengukur performa
-            const startTime = performance.now();
-
-            // Lakukan pencarian dengan algoritma string matching menggunakan service
-            for (const row of rows) {
-                const nama = row.getAttribute('data-nama') || '';
-                const email = row.getAttribute('data-email') || '';
-                const status = row.getAttribute('data-status') || '';
-                
-                // Gunakan algoritma string matching untuk mencari pattern
-                const namaMatches = await StringMatching.searchWithAlgorithm(nama, searchValue, algorithm);
-                const emailMatches = await StringMatching.searchWithAlgorithm(email, searchValue, algorithm);
-                const matchesSearch = namaMatches.length > 0 || emailMatches.length > 0;
-                const matchesStatus = !statusValue || status === statusValue;
-                
-                if (matchesSearch && matchesStatus) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            }
-
-            // Hitung waktu eksekusi dalam milidetik
-            const processTime = performance.now() - startTime;
-
-            // Log performa algoritma (tanpa tampilkan di UI)
-            logSearchPerformance(searchValue, algorithm, processTime, visibleCount);
-
-            // Tampilkan pesan jika tidak ada hasil
-            if (visibleCount === 0) {
-                noResults.classList.remove('hidden');
-            } else {
-                noResults.classList.add('hidden');
-            }
-        }
-        
-        // Inisialisasi saat halaman dimuat
+        // Inisialisasi: nothing else required
         document.addEventListener('DOMContentLoaded', function() {
-            // Pastikan fungsi filterTable tersedia secara global
-            window.filterTable = filterTable;
+            // no-op
         });
 
         // ======================================================

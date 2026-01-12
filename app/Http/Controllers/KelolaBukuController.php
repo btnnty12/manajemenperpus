@@ -40,9 +40,38 @@ class KelolaBukuController extends Controller
         return $nextId;
     }
     // Tampilkan halaman kelola buku
-    public function index()
+    public function index(Request $request)
     {
-        $buku = Buku::orderBy('created_at', 'desc')->get();
+        // Server-side pagination + filtering
+        $q = trim((string) $request->query('q', ''));
+        $kategori = $request->query('kategori', '');
+        $status = $request->query('status', '');
+        $perPage = (int) $request->query('per_page', 10);
+        if ($perPage <= 0) $perPage = 10;
+
+        $query = Buku::query();
+
+        if ($q !== '') {
+            $query->where(function($sub) use ($q) {
+                $sub->where('judul', 'like', "%{$q}%")
+                    ->orWhere('penulis', 'like', "%{$q}%");
+            });
+        }
+
+        if ($kategori) {
+            $query->where('genre', $kategori);
+        }
+
+        if ($status) {
+            if ($status === 'Tersedia') {
+                $query->where('stok', '>', 0);
+            } elseif ($status === 'Tidak Tersedia') {
+                $query->where('stok', '<=', 0);
+            }
+        }
+
+        $buku = $query->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
+
         $stats = [
             'totalJudul' => Buku::count(),
             'totalEksemplar' => Buku::sum('stok'),
@@ -55,7 +84,83 @@ class KelolaBukuController extends Controller
         // Generate next book ID untuk form tambah
         $nextBookId = $this->getNextBookId();
         
-        return view('kelola-buku', compact('buku', 'stats', 'nextBookId'));
+        return view('kelola-buku', compact('buku', 'stats', 'nextBookId', 'q', 'kategori', 'status', 'perPage'));
+    }
+
+    // Sinkronisasi data dummy ke DB (idempotent, bisa dipanggil oleh admin/staff)
+    public function syncDummy(Request $request)
+    {
+        $now = now();
+
+        $data = [
+            ['Laskar Pelangi', 'Andrea Hirata', 'Sastra Indonesia', 2005],
+            ['Bumi Manusia', 'Pramoedya Ananta Toer', 'Sejarah & Sastra', 1980],
+            ['Negeri 5 Menara', 'Ahmad Fuadi', 'Motivasi', 2009],
+            ['Ayat-Ayat Cinta', 'Habiburrahman El Shirazy', 'Religi', 2004],
+            ['Filosofi Teras', 'Henry Manampiring', 'Psikologi', 2018],
+            ['Atomic Habits (Terjemahan)', 'James Clear', 'Pengembangan Diri', 2019],
+            ['Sapiens', 'Yuval Noah Harari', 'Sejarah', 2017],
+            ['Rich Dad Poor Dad', 'Robert T. Kiyosaki', 'Keuangan', 2015],
+            ['Pemrograman Web Laravel', 'Eko Kurniawan Khannedy', 'Teknologi', 2022],
+            ['Basis Data', 'Abdul Kadir', 'Teknologi', 2018],
+            ['Algoritma & Struktur Data', 'Rinaldi Munir', 'Teknologi', 2019],
+            ['Sistem Informasi Manajemen', 'Jogiyanto', 'Manajemen', 2017],
+            ['Manajemen Perpustakaan', 'Sulistyo Basuki', 'Perpustakaan', 2016],
+            ['Metodologi Penelitian', 'Sugiyono', 'Pendidikan', 2020],
+            ['Statistika untuk Penelitian', 'Sudjana', 'Pendidikan', 2019],
+            ['Pengantar Ilmu Komunikasi', 'Deddy Mulyana', 'Sosial', 2018],
+            ['Ilmu Politik', 'Miriam Budiardjo', 'Sosial', 2017],
+            ['Hukum Perdata', 'Subekti', 'Hukum', 2016],
+            ['Hukum Tata Negara', 'Jimly Asshiddiqie', 'Hukum', 2018],
+            ['Akuntansi Dasar', 'Warren Reeve Fess', 'Akuntansi', 2020],
+        ];
+
+        $books = [];
+        foreach ($data as $index => $item) {
+            $books[] = [
+                'judul' => $item[0],
+                'penulis' => $item[1],
+                'genre' => $item[2],
+                'deskripsi' => "Buku {$item[0]} karya {$item[1]} yang umum tersedia di perpustakaan Indonesia.",
+                'cover' => $index % 2 === 0 ? "covers/buku-" . ($index + 1) . ".jpg" : "https://picsum.photos/300/400?random=" . ($index + 1),
+                'tahun_terbit' => $item[3],
+                'stok' => rand(3, 15),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        // Gandakan sampai ~100 data dan beri label edisi
+        $finalBooks = [];
+        for ($i = 1; $i <= 5; $i++) {
+            foreach ($books as $buku) {
+                if (count($finalBooks) >= 100) break 2;
+                $bukuCopy = $buku;
+                $bukuCopy['judul'] = $bukuCopy['judul'] . " (Edisi {$i})";
+                $finalBooks[] = $bukuCopy;
+            }
+        }
+
+        $inserted = 0;
+        foreach ($finalBooks as $b) {
+            $model = Buku::firstOrCreate(
+                ['judul' => $b['judul']],
+                [
+                    'penulis' => $b['penulis'],
+                    'genre' => $b['genre'],
+                    'deskripsi' => $b['deskripsi'],
+                    'cover' => $b['cover'],
+                    'tahun_terbit' => $b['tahun_terbit'],
+                    'stok' => $b['stok'],
+                ]
+            );
+            if ($model->wasRecentlyCreated) $inserted++;
+        }
+
+        // Redirect kembali ke halaman kelola sesuai peran
+        $route = (auth()->check() && auth()->user()->peran === 'staff') ? 'staff.kelola-buku' : 'kelola.buku';
+
+        return redirect()->route($route)->with('success', "Sinkronisasi selesai: {$inserted} buku ditambahkan dari data dummy");
     }
 
     // Simpan buku baru (ADMIN & STAFF)
@@ -300,4 +405,6 @@ class KelolaBukuController extends Controller
         
         return redirect()->back()->with('success', 'Import berhasil');
     }
+
+
 }

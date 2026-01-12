@@ -44,7 +44,7 @@
     right: -6px;
 }
     </style>
-    <script src="/js/string-matching-service.js"></script>
+
 </head>
 
 <body class="bg-gradient-to-b from-[#F8E79D] to-[#F4C86E] min-h-screen">
@@ -142,13 +142,8 @@
             <img src="{{ asset('icons/search.svg') }}" 
                  class="w-5 absolute left-4 top-1/2 -translate-y-1/2 opacity-80">
 
-            <!-- Algorithm selector + spinner + info -->
+            <!-- Spinner + info -->
             <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                <select id="algoSelect" class="text-sm rounded-full px-3 py-1 border border-yellow-300 bg-white">
-                    <option value="bm">BM</option>
-                    <option value="kmp">KMP</option>
-                    <option value="bf">Brute</option>
-                </select>
                 <div id="searchSpinner" class="hidden w-6 h-6 border-2 border-t-transparent rounded-full animate-spin border-yellow-400"></div>
             </div>
 
@@ -294,6 +289,7 @@
 
     function loadHistory() {
         fetch('/api/riwayat-pencarian', {
+            credentials: 'same-origin',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                 'Accept': 'application/json'
@@ -332,12 +328,16 @@
         // Hapus dari database
         fetch(`/api/riwayat-pencarian/${keyword}`, {
             method: 'DELETE',
+            credentials: 'same-origin',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                 'Accept': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to delete');
+            return response.json();
+        })
         .then(() => {
             // Hapus dari array lokal dan render ulang
             searchHistory = searchHistory.filter(item => item.keyword !== keyword);
@@ -355,12 +355,16 @@
         if (confirm('Yakin ingin menghapus semua riwayat pencarian?')) {
             fetch('/api/riwayat-pencarian', {
                 method: 'DELETE',
+                credentials: 'same-origin',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                     'Accept': 'application/json'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to clear');
+                return response.json();
+            })
             .then(() => {
                 searchHistory = [];
                 renderHistory();
@@ -543,7 +547,6 @@ let selectedTahun = {{ $maxYear ?? date('Y') }};
 let searchTimeout;
 searchInput.addEventListener("input", () => {
     const q = searchInput.value.trim();
-    const algo = document.getElementById('algoSelect').value;
     const spinner = document.getElementById('searchSpinner');
     const info = document.getElementById('searchInfo');
 
@@ -563,7 +566,7 @@ searchInput.addEventListener("input", () => {
         const genreParam = selectedGenre ? `&genre=${encodeURIComponent(selectedGenre)}` : '';
         const tahunParam = selectedTahun ? `&tahun=${selectedTahun}` : '';
         
-        fetch(`/api/search?q=${encodeURIComponent(q)}&algo=${encodeURIComponent(algo)}&case=true${genreParam}${tahunParam}`, {
+        fetch(`/api/search?q=${encodeURIComponent(q)}${genreParam}${tahunParam}`, {            credentials: 'same-origin',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                 'Accept': 'application/json'
@@ -575,8 +578,9 @@ searchInput.addEventListener("input", () => {
             if (data.success && data.data && data.data.results) {
                 const results = data.data.results;
 
-                // Show info (count, algo, time)
-                info.textContent = `${data.data.pagination.total} hasil • ${data.data.algorithm.toUpperCase()} • ${Math.round(data.data.process_time_ms)} ms`;
+                // Show info (count, engine, time)
+                const engine = (data.data.engine || 'db').toUpperCase();
+                info.textContent = `${data.data.pagination.total} hasil • ${engine} • ${Math.round(data.data.process_time_ms)} ms`;
                 info.classList.remove('hidden');
                 
                 // Update dropdown suggestions
@@ -593,6 +597,29 @@ searchInput.addEventListener("input", () => {
                             searchResults.classList.add("hidden");
                             performSearch(book.judul);
                         });
+
+                        // Tambahkan badge singkat dengan info algoritma jika service tersedia (hanya di laman publik)
+                        if (window.StringMatchingService && q) {
+                            try {
+                                const algo = window.StringMatchingService.selectBestAlgorithm(q, (book.judul || '').length);
+                                const t0 = performance.now();
+                                window.StringMatchingService.searchWithAlgorithm(book.judul || '', q, algo)
+                                    .then(positions => {
+                                        const t1 = performance.now();
+                                        const ms = Math.max(0, Math.round(t1 - t0));
+                                        const badge = document.createElement('div');
+                                        badge.className = 'text-xs text-gray-400 mt-1';
+                                        badge.textContent = `${algo.toUpperCase()} • ${ms} ms`;
+                                        d.appendChild(badge);
+                                    })
+                                    .catch(() => {
+                                        // ignore service failures
+                                    });
+                            } catch (err) {
+                                // ignore
+                            }
+                        }
+
                         searchResults.appendChild(d);
                     });
                 }
@@ -600,6 +627,9 @@ searchInput.addEventListener("input", () => {
                 
                 // Render hasil pencarian
                 renderSearchResults(results);
+
+                // Update riwayat setelah pencarian berhasil
+                loadHistory();
             } else {
                 searchResults.innerHTML = `<p class="p-3 text-gray-500">Tidak ditemukan</p>`;
                 searchResults.classList.remove("hidden");
@@ -623,14 +653,14 @@ function escapeHtml(unsafe) {
 function performSearch(query) {
     const genreParam = selectedGenre ? `&genre=${encodeURIComponent(selectedGenre)}` : '';
     const tahunParam = selectedTahun ? `&tahun=${selectedTahun}` : '';
-    const algo = document.getElementById('algoSelect').value;
     const spinner = document.getElementById('searchSpinner');
     const info = document.getElementById('searchInfo');
 
     spinner.classList.remove('hidden');
     info.classList.add('hidden');
 
-    fetch(`/api/search?q=${encodeURIComponent(query)}&algo=${encodeURIComponent(algo)}&case=true${genreParam}${tahunParam}`, {
+    fetch(`/api/search?q=${encodeURIComponent(query)}${genreParam}${tahunParam}`, {
+        credentials: 'same-origin',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
             'Accept': 'application/json'
@@ -640,9 +670,13 @@ function performSearch(query) {
     .then(data => {
         spinner.classList.add('hidden');
         if (data.success && data.data && data.data.results) {
-            info.textContent = `${data.data.pagination.total} hasil • ${data.data.algorithm.toUpperCase()} • ${Math.round(data.data.process_time_ms)} ms`;
+            const engine = (data.data.engine || 'db').toUpperCase();
+            info.textContent = `${data.data.pagination.total} hasil • ${engine} • ${Math.round(data.data.process_time_ms)} ms`;
             info.classList.remove('hidden');
             renderSearchResults(data.data.results);
+
+            // Update riwayat setelah pencarian berhasil
+            loadHistory();
         } else {
             hasilPencarianSection.classList.remove("hidden");
             hasilPencarianList.innerHTML = '<p class="text-red-600 col-span-4">Buku tidak ditemukan.</p>';
@@ -736,83 +770,10 @@ document.addEventListener("click", (e) => {
 });
 </script>
 
-<script>
-if (typeof allBooks !== 'undefined' && Array.isArray(allBooks)) {
-    const books = allBooks; // ambil data buku dari array utama
 
-    const searchInput = document.getElementById("searchInput");
-    const searchResults = document.getElementById("searchResults");
-    const bookGrid = document.getElementById("rekomendasiList");
-
-    function renderBooks(list) {
-        if (!list.length) {
-            bookGrid.innerHTML = `<p class='text-red-600'>Buku tidak ditemukan.</p>`;
-            return;
-        }
-
-        bookGrid.innerHTML = list.map(b => `
-            <div class="w-32">
-                <img src="/${b.img}" class="w-full rounded-lg shadow-md">
-                <p class="mt-2 text-sm font-semibold">${b.title}</p>
-                <p class="text-xs text-gray-500">${b.jenis} • ${b.bahasa}</p>
-                <p class="text-xs text-gray-500">Tahun: ${b.tahun}</p>
-            </div>
-        `).join("");
-    }
-
-    // EVENT SEARCH (fallback client-side)
-    searchInput.addEventListener("input", () => {
-        const q = searchInput.value.toLowerCase();
-
-        if (q === "") {
-            searchResults.classList.add("hidden");
-            renderBooks(allBooks); // kembali tampilkan semua
-            return;
-        }
-
-        const matches = books.filter(b =>
-            b.title.toLowerCase().includes(q)
-        );
-
-        // tampilkan dropdown teks
-        searchResults.innerHTML = "";
-        if (!matches.length) {
-            searchResults.innerHTML = `<p class="p-3 text-gray-500">Tidak ditemukan</p>`;
-        } else {
-            matches.forEach(m => {
-                let div = document.createElement("div");
-                div.textContent = m.title;
-                div.className = "p-3 cursor-pointer hover:bg-yellow-100 rounded-lg";
-
-                // KLIK → tampilkan buku lengkap di rekomendasi
-                div.addEventListener("click", () => {
-                    searchInput.value = m.title;
-                    searchResults.classList.add("hidden");
-                    renderBooks([m]);
-                });
-
-                searchResults.appendChild(div);
-            });
-        }
-
-        searchResults.classList.remove("hidden");
-
-        // auto render saat mengetik
-        renderBooks(matches);
-    });
-
-    // klik luar → tutup dropdown
-    document.addEventListener("click", (e) => {
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-            searchResults.classList.add("hidden");
-        }
-    });
-}
-</script>
 
 <script>
 const kategoriTags = document.querySelectorAll('.kategori-tag');
-const StringMatching = window.StringMatchingService;
 
 kategoriTags.forEach(tag => {
     tag.addEventListener('click', () => {
@@ -824,6 +785,7 @@ kategoriTags.forEach(tag => {
             tag.classList.remove("bg-yellow-300");
             const closeBtn = tag.querySelector(".x-btn");
             if (closeBtn) closeBtn.remove();
+            selectedGenre = null;
             hasilPencarianSection.classList.add("hidden");
             return;
         }
@@ -848,24 +810,16 @@ kategoriTags.forEach(tag => {
             e.stopPropagation();
             tag.classList.remove("bg-yellow-300");
             closeButton.remove();
+            selectedGenre = null;
             hasilPencarianSection.classList.add("hidden");
         });
 
-        const kategori = tag.innerText.replace("×","").trim().toLowerCase();
-        const algo = StringMatching.selectBestAlgorithm(kategori);
-        Promise.all(allBooks.map(b => StringMatching.searchWithAlgorithm(b.title.toLowerCase(), kategori, algo).then(pos => (pos.length > 0 ? b : null)))).then(results => {
-            const filtered = results.filter(Boolean);
-            hasilPencarianSection.classList.remove("hidden");
-            hasilPencarianList.innerHTML = filtered.length
-                ? filtered.map(b => `
-                    <div>
-                        <img src="/${b.img}" class="w-full rounded-lg shadow-md">
-                        <p class="mt-2 text-sm font-semibold">${b.title}</p>
-                        <p class="text-xs text-gray-500">${b.jenis} • ${b.bahasa}</p>
-                        <p class="text-xs text-gray-500">Tahun: ${b.tahun}</p>
-                    </div>`
-                ).join("")
-                : `<p class="text-red-600">Tidak ada buku ditemukan.</p>`;
+        const kategori = tag.innerText.replace("×"," ").trim();
+        selectedGenre = kategori;
+        // Use server-side search: set search input to category and perform search
+        searchInput.value = kategori;
+        performSearch(kategori);
+
         });
     });
 });
@@ -918,6 +872,9 @@ highlight.style.top = "80px";
     } catch (err) { /* ignore */ }
 })();
 </script>
+
+<!-- String matching service (used only on public search page for demo/highlight) -->
+<script src="{{ asset('js/string-matching-service.js') }}"></script>
 
 </body>
 </html>

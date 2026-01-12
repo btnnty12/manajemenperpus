@@ -231,7 +231,7 @@
     <button class="btn-white" onclick="openImportExcelModal()">
         <i class="fa-solid fa-file-import"></i> Import Excel
     </button>
-    
+
     <a class="btn-white" href="{{ session('role') === 'staff' ? route('staff.dashboard') : route('admin') }}">
         <i class="fa-solid fa-arrow-left"></i> Kembali ke Dashboard Staff
     </a>
@@ -260,32 +260,39 @@
         </div>
     </div>
 
-    <!-- FILTER BAR -->
-    <div class="filter-row">
+    <!-- FILTER BAR (Server-side) -->
+    <form method="GET" action="{{ $isStaff ? route('staff.kelola-buku') : route('kelola.buku') }}" class="filter-row">
 
-        <input type="text" id="searchInput" placeholder="Search"
-               class="filter-search shadow p-3 rounded-lg" onkeyup="filterTable()">
+        <input type="text" id="searchInput" name="q" value="{{ request('q') }}" placeholder="Search"
+               class="filter-search shadow p-3 rounded-lg">
 
-        <select id="kategoriFilter" class="filter-select shadow" onchange="filterTable()">
+        <select id="kategoriFilter" name="kategori" class="filter-select shadow" onchange="this.form.submit()">
             <option value="">Semua Kategori</option>
-            <option value="Bahasa">Bahasa</option>
-            <option value="Pemrograman">Pemrograman</option>
-            <option value="Psikologi">Psikologi</option>
-            <option value="Akuntansi">Akuntansi</option>
-            <option value="Manajemen">Manajemen</option>
-            <option value="Statistik">Statistik</option>
-            <option value="AI">AI</option>
-            <option value="Budaya">Budaya</option>
+            <option value="Bahasa" {{ request('kategori') === 'Bahasa' ? 'selected' : '' }}>Bahasa</option>
+            <option value="Pemrograman" {{ request('kategori') === 'Pemrograman' ? 'selected' : '' }}>Pemrograman</option>
+            <option value="Psikologi" {{ request('kategori') === 'Psikologi' ? 'selected' : '' }}>Psikologi</option>
+            <option value="Akuntansi" {{ request('kategori') === 'Akuntansi' ? 'selected' : '' }}>Akuntansi</option>
+            <option value="Manajemen" {{ request('kategori') === 'Manajemen' ? 'selected' : '' }}>Manajemen</option>
+            <option value="Statistik" {{ request('kategori') === 'Statistik' ? 'selected' : '' }}>Statistik</option>
+            <option value="AI" {{ request('kategori') === 'AI' ? 'selected' : '' }}>AI</option>
+            <option value="Budaya" {{ request('kategori') === 'Budaya' ? 'selected' : '' }}>Budaya</option>
         </select>
 
-        <select id="statusFilter" class="filter-select shadow" onchange="filterTable()">
+        <select id="statusFilter" name="status" class="filter-select shadow" onchange="this.form.submit()">
             <option value="">Semua Status</option>
-            <option value="Tersedia">Tersedia</option>
-            <option value="Tidak Tersedia">Tidak Tersedia</option>
+            <option value="Tersedia" {{ request('status') === 'Tersedia' ? 'selected' : '' }}>Tersedia</option>
+            <option value="Tidak Tersedia" {{ request('status') === 'Tidak Tersedia' ? 'selected' : '' }}>Tidak Tersedia</option>
         </select>
 
-        <button class="btn-search" onclick="filterTable()">Search</button>
-    </div>
+        <select id="perPage" name="per_page" class="filter-select shadow" onchange="this.form.submit()">
+            <option value="10" {{ (int) request('per_page', 10) === 10 ? 'selected' : '' }}>10 / halaman</option>
+            <option value="20" {{ (int) request('per_page') === 20 ? 'selected' : '' }}>20 / halaman</option>
+            <option value="50" {{ (int) request('per_page') === 50 ? 'selected' : '' }}>50 / halaman</option>
+            <option value="100" {{ (int) request('per_page') === 100 ? 'selected' : '' }}>100 / halaman</option>
+        </select>
+
+        <button type="submit" class="btn-search">Search</button>
+    </form>
 
 </div>
 
@@ -357,8 +364,10 @@
 </div>
 
     <!-- ============================ PAGINATION ============================ -->
-    <div id="paginationContainer" class="flex items-center justify-center space-x-4 mt-6">
-        <!-- Pagination akan di-generate oleh JavaScript -->
+    <div class="mt-6 flex items-center justify-center">
+        @if(isset($buku))
+            {{ $buku->appends(request()->query())->links() }}
+        @endif
     </div>
     
 </div>
@@ -793,84 +802,20 @@ function searchWithAlgorithm(text, pattern, algorithm) {
     }
 }
 
-// ======================================================
-// FUNGSI FILTER TABLE DENGAN ALGORITMA
-// ======================================================
-let searchTimeout;
-
-function filterTable() {
-    // Debounce untuk menghindari terlalu banyak eksekusi
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        executeSearch();
-    }, 150); // Delay 150ms
-}
-
-function executeSearch() {
+// Server-side filtering: inputs submit the page (form GET). Enhance UX by submitting form on Enter inside the search box.
+(function() {
     const searchInput = document.getElementById('searchInput');
-    const kategoriFilter = document.getElementById('kategoriFilter');
-    const statusFilter = document.getElementById('statusFilter');
-    const rows = document.querySelectorAll('.buku-row');
-    const noResults = document.getElementById('noResults');
-    
-    if (!searchInput || !rows.length) return;
-    
-    const searchValue = searchInput.value.trim().toLowerCase();
-    const kategoriValue = kategoriFilter ? kategoriFilter.value : '';
-    const statusValue = statusFilter ? statusFilter.value : '';
-    let visibleCount = 0;
-
-    // Jika tidak ada input search, tampilkan semua berdasarkan filter
-    if (!searchValue && !kategoriValue && !statusValue) {
-        rows.forEach(row => {
-            row.style.display = '';
-            visibleCount++;
+    if (searchInput) {
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.form.submit();
+            }
         });
-        if (noResults) noResults.classList.add('hidden');
-        return;
     }
+})();
 
-    // Pilih algoritma terbaik berdasarkan panjang pattern
-    const algorithm = selectBestAlgorithm(searchValue);
-    
-    // Mulai timer untuk mengukur performa
-    const startTime = performance.now();
-
-    // Lakukan pencarian dengan algoritma string matching
-    rows.forEach(row => {
-        const judul = row.getAttribute('data-judul') || '';
-        const kategori = row.getAttribute('data-kategori') || '';
-        const status = row.getAttribute('data-status') || '';
-        
-        let matchesSearch = true;
-        if (searchValue) {
-            const judulMatches = searchWithAlgorithm(judul, searchValue, algorithm);
-            matchesSearch = judulMatches.length > 0;
-        }
-        
-        const matchesKategori = !kategoriValue || kategori === kategoriValue;
-        const matchesStatus = !statusValue || status === statusValue;
-        
-        if (matchesSearch && matchesKategori && matchesStatus) {
-            row.style.display = '';
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-        }
-    });
-
-    // Tampilkan pesan jika tidak ada hasil
-    if (noResults) {
-        if (visibleCount === 0) {
-            noResults.classList.remove('hidden');
-        } else {
-            noResults.classList.add('hidden');
-        }
-    }
-    
-    // Update pagination setelah filter
-    updatePagination();
-}
+// Note: Pagination and filtering are now handled server-side (Laravel paginator). Client-side filter/pagination code has been removed to avoid conflicts.
 
 // ======================================================
 // FUNGSI MODAL TAMBAH BUKU
@@ -1229,7 +1174,7 @@ function handleDeleteBuku(row, data) {
     const confirmDel = confirm(`Hapus buku \"${data.judul}\"?`);
     if (confirmDel) {
         row.remove();
-        updatePagination();
+        // Pagination is server-side; reload if you want the server state to reflect changes
     }
 }
 
@@ -1398,6 +1343,8 @@ function handleTambahBuku(event) {
     newRow.setAttribute('data-id', data.id_buku);
     newRow.setAttribute('data-rak', data.rak);
     newRow.setAttribute('data-stok', data.stok);
+    // Mark new row as passing current filters by default
+    newRow.dataset.passesFilter = '1';
     
     const statusClass = data.status === 'Tersedia' ? 'text-green-600' : 'text-red-600';
     
@@ -1425,7 +1372,7 @@ function handleTambahBuku(event) {
     attachRowActions(newRow);
     closeTambahBukuModal();
     alert('Buku berhasil ditambahkan!');
-    updatePagination();
+    // Note: pagination is server-side; reload the page if you want to see persistence across pages.
 }
 
 // ======================================================
@@ -1460,84 +1407,10 @@ function handleImportExcel(event) {
 // ======================================================
 // FUNGSI PAGINATION
 // ======================================================
-let currentPage = 1;
-const itemsPerPage = 5;
-
-function updatePagination() {
-    const allRows = Array.from(document.querySelectorAll('#bukuTableBody .buku-row'));
-    const filteredRows = allRows.filter(r => r.style.display !== 'none');
-    const totalItems = filteredRows.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    
-    const paginationContainer = document.getElementById('paginationContainer');
-    if (!paginationContainer) return;
-    
-    if (totalPages <= 1) {
-        paginationContainer.innerHTML = '';
-        // Tampilkan hanya baris yang lolos filter
-        filteredRows.forEach(r => r.style.display = '');
-        allRows.forEach(r => {
-            if (!filteredRows.includes(r)) r.style.display = 'none';
-        });
-        return;
-    }
-    
-    let paginationHTML = '';
-    
-    paginationHTML += `
-        <button onclick="goToPage(${currentPage - 1})" 
-                class="w-8 h-8 flex items-center justify-center bg-gray-300 rounded-full text-gray-700 hover:bg-gray-400 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}"
-                ${currentPage === 1 ? 'disabled' : ''}>
-            ‹
-        </button>
-    `;
-    
-    for (let i = 1; i <= totalPages; i++) {
-        if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-            if (i === currentPage) {
-                paginationHTML += `<div class="w-7 h-7 flex items-center justify-center bg-[#A63A2D] text-white rounded-full">${i}</div>`;
-            } else {
-                paginationHTML += `<button onclick="goToPage(${i})" class="w-7 h-7 flex items-center justify-center text-gray-800 hover:bg-gray-200 rounded-full">${i}</button>`;
-            }
-        } else if (i === currentPage - 2 || i === currentPage + 2) {
-            paginationHTML += `<span class="text-gray-800 text-lg">...</span>`;
-        }
-    }
-    
-    paginationHTML += `
-        <button onclick="goToPage(${currentPage + 1})" 
-                class="w-8 h-8 flex items-center justify-center bg-gray-300 rounded-full text-gray-700 hover:bg-gray-400 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}"
-                ${currentPage === totalPages ? 'disabled' : ''}>
-            ›
-        </button>
-    `;
-    
-    paginationContainer.innerHTML = paginationHTML;
-    
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    
-    filteredRows.forEach((row, index) => {
-        row.style.display = (index >= startIndex && index < endIndex) ? '' : 'none';
-    });
-    
-    allRows.forEach(r => {
-        if (!filteredRows.includes(r)) r.style.display = 'none';
-    });
-}
-
-function goToPage(page) {
-    const allRows = Array.from(document.querySelectorAll('#bukuTableBody .buku-row'));
-    const filteredRows = allRows.filter(r => r.style.display !== 'none');
-    const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
-    if (page < 1 || page > totalPages) return;
-    currentPage = page;
-    updatePagination();
-}
+// Pagination is handled server-side by Laravel's paginator. Client-side pagination helpers removed to avoid conflicts.
 
 // Inisialisasi pagination saat halaman dimuat
 document.addEventListener('DOMContentLoaded', () => {
-    updatePagination();
     initRowActions();
 });
 

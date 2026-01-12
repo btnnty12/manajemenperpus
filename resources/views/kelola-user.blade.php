@@ -76,6 +76,30 @@
     <div class="w-full border-b-2 border-white mb-6"></div>
 
     <!-- ============================ MAIN CONTENT ============================ -->
+    @php
+        use App\Models\Pengguna;
+
+        $perPage = request('per_page', 10);
+        $q = trim(request('q', ''));
+        $roleFilter = request('role', '');
+
+        $userQuery = Pengguna::query();
+        if ($q !== '') {
+            $userQuery->where(function($s) use ($q) {
+                $s->where('nama', 'like', "%{$q}%")
+                  ->orWhere('email', 'like', "%{$q}%")
+                  ->orWhere('username', 'like', "%{$q}%");
+            });
+        }
+        if ($roleFilter !== '') {
+            // map display roles to stored values if needed
+            $map = ['Admin' => 'admin', 'Staff' => 'staff', 'User' => 'pengguna'];
+            $value = $map[$roleFilter] ?? $roleFilter;
+            $userQuery->where('peran', $value);
+        }
+        $users = $userQuery->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
+    @endphp
+
     <div class="section-wrapper">
         <h1 class="text-4xl font-bold">Kelola User !</h1>
         <p class="text-gray-700 mt-1">Atur daftar admin, staff, maupun pengguna.</p>
@@ -83,19 +107,19 @@
         <!-- STATISTIK -->
         <div class="flex justify-center gap-7 mt-8">
             <div class="bg-[#A24731] w-56 h-28 rounded-xl text-white shadow-xl flex flex-col justify-center items-center">
-                <h2 class="text-4xl font-bold" id="statTotal">0</h2>
+                <h2 class="text-4xl font-bold" id="statTotal">{{ \App\Models\Pengguna::count() }}</h2>
                 <p>Total User</p>
             </div>
             <div class="bg-[#A24731] w-56 h-28 rounded-xl text-white shadow-xl flex flex-col justify-center items-center">
-                <h2 class="text-4xl font-bold" id="statAdmin">0</h2>
+                <h2 class="text-4xl font-bold" id="statAdmin">{{ \App\Models\Pengguna::where('peran', 'admin')->count() }}</h2>
                 <p>Admin</p>
             </div>
             <div class="bg-[#A24731] w-56 h-28 rounded-xl text-white shadow-xl flex flex-col justify-center items-center">
-                <h2 class="text-4xl font-bold" id="statStaff">0</h2>
+                <h2 class="text-4xl font-bold" id="statStaff">{{ \App\Models\Pengguna::where('peran', 'staff')->count() }}</h2>
                 <p>Staff</p>
             </div>
             <div class="bg-[#A24731] w-56 h-28 rounded-xl text-white shadow-xl flex flex-col justify-center items-center">
-                <h2 class="text-4xl font-bold" id="statPengguna">0</h2>
+                <h2 class="text-4xl font-bold" id="statPengguna">{{ \App\Models\Pengguna::where('peran', 'pengguna')->count() }}</h2>
                 <p>Pengguna</p>
             </div>
         </div>
@@ -137,23 +161,25 @@
         </div>
 
         <!-- FILTER -->
-        <div class="flex justify-center gap-4 mt-8">
-            <input type="text" id="searchInput" placeholder="Search user..." class="w-80 p-3 rounded-lg shadow" onkeyup="filterTable()">
-            <select id="roleFilter" class="p-3 w-48 rounded-lg shadow" onchange="filterTable()">
-                <option value="">Filter Role</option>
-                <option value="Admin">Admin</option>
-                <option value="Staff">Staff</option>
-                <option value="User">Pengguna</option>
+        <form id="filterForm" method="GET" class="flex justify-center gap-4 mt-8">
+            <input type="text" name="q" id="searchInput" placeholder="Search user..." value="{{ request('q') }}" class="w-80 p-3 rounded-lg shadow" oninput="debouncedSubmit()">
+            <select name="role" id="roleFilter" class="p-3 w-48 rounded-lg shadow" onchange="debouncedSubmit()">
+                <option value="" {{ request('role') == '' ? 'selected' : '' }}>Filter Role</option>
+                <option value="Admin" {{ request('role') == 'Admin' ? 'selected' : '' }}>Admin</option>
+                <option value="Staff" {{ request('role') == 'Staff' ? 'selected' : '' }}>Staff</option>
+                <option value="User" {{ request('role') == 'User' ? 'selected' : '' }}>Pengguna</option>
             </select>
-            <button class="bg-[#2476FF] text-white px-6 py-3 rounded-lg font-bold" onclick="filterTable()">Search</button>
-        </div>
+
+            <select name="per_page" id="perPageSelect" class="p-3 w-48 rounded-lg shadow" onchange="debouncedSubmit()">
+                <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 / halaman</option>
+                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 / halaman</option>
+                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 / halaman</option>
+            </select>
+        </form>
     </div>
 
     <!-- TABEL USER -->
     <div class="mt-10 bg-white rounded-lg shadow overflow-hidden w-[97%]">
-        <div id="noResults" class="hidden text-center py-8 text-gray-500">
-            <p>Tidak ada user yang ditemukan.</p>
-        </div>
         <table class="w-full text-left">
             <thead class="bg-[#b54a38] text-white">
                 <tr>
@@ -166,15 +192,32 @@
                 </tr>
             </thead>
             <tbody id="userTableBody">
-                <!-- Baris user akan di-render oleh JavaScript -->
+                @forelse($users as $user)
+                <tr class="user-row odd:bg-gray-50" data-nama="{{ strtolower($user->nama) }}" data-username="{{ strtolower($user->username ?? '') }}" data-email="{{ strtolower($user->email) }}" data-role="{{ ucfirst($user->peran) }}">
+                    <td class="px-6 py-4">U-{{ str_pad($user->id, 3, '0', STR_PAD_LEFT) }}</td>
+                    <td class="px-6 py-4">{{ $user->nama }}</td>
+                    <td class="px-6 py-4">{{ $user->username ?? '-' }}</td>
+                    <td class="px-6 py-4">{{ $user->email }}</td>
+                    <td class="px-6 py-4">{{ ucfirst($user->peran) }}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2">
+                            <button onclick="editUser({{ $user->id }})" class="bg-blue-600 text-white px-3 py-1 rounded text-xs">Edit</button>
+                            <button onclick="deleteUser({{ $user->id }}, '{{ addslashes($user->nama) }}')" class="bg-red-600 text-white px-3 py-1 rounded text-xs">Hapus</button>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">Tidak ada user yang ditemukan.</td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 
     <!-- PAGINATION -->
     <div id="paginationContainer" class="flex items-center justify-center space-x-4 mt-6">
-        <!-- Pagination akan di-generate oleh JavaScript -->
-    </div>
+        {{ $users->appends(request()->query())->links() }}
 
 </div>
 

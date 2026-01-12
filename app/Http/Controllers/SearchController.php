@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class SearchController extends Controller
@@ -38,8 +39,7 @@ class SearchController extends Controller
         try {
             $validated = $validator->validated();
             $searchQuery = $validated['q'];
-            $algorithm = $validated['algo'] ?? 'bm';
-            $caseInsensitive = filter_var($validated['case'] ?? true, FILTER_VALIDATE_BOOL);
+            // Ignore string-matching algorithm parameter — search performed using DB LIKE queries
             $perPage = (int) ($validated['per_page'] ?? 10);
             $currentPage = (int) ($validated['page'] ?? 1);
             $filterGenre = $validated['genre'] ?? null;
@@ -52,11 +52,12 @@ class SearchController extends Controller
 
             // ======================================================
             // Pre-filter database (tokenized, order-independent, case-insensitive)
+            // Use DB LIKE for matching; no manual string-matching algorithm is used
             // ======================================================
             $terms = preg_split('/\s+/', trim($searchQuery));
 
             $booksQuery = Buku::query()
-                ->select(['id', 'judul', 'penulis', 'genre', 'tahun_terbit', 'deskripsi']);
+                ->select(['id', 'judul', 'penulis', 'genre', 'tahun_terbit', 'deskripsi', 'stok', 'cover']);
 
             foreach ($terms as $term) {
                 $term = trim($term);
@@ -83,11 +84,12 @@ class SearchController extends Controller
                 $booksQuery->where('tahun_terbit', '<=', $filterTahun);
             }
 
-            $books = $booksQuery->get();
+            // Use Eloquent pagination (DB-driven)
+            $paged = $booksQuery->orderBy('created_at', 'desc')->paginate($perPage, ['*'], 'page', $currentPage)->withQueryString();
 
             $results = [];
 
-            foreach ($books as $book) {
+            foreach ($paged->items() as $book) {
                 $fields = [
                     'judul' => $book->judul ?? '',
                     'penulis' => $book->penulis ?? '',
@@ -96,29 +98,20 @@ class SearchController extends Controller
 
                 $matches = [];
 
-                // Use per-term matching so multi-word queries (order-independent) are matched
-                $terms = preg_split('/\s+/', trim($searchQuery));
-
+                // Build matches by checking presence of terms in fields (case-insensitive)
                 foreach ($fields as $fieldName => $fieldValue) {
-                    $allPositions = [];
+                    $foundAny = false;
                     foreach ($terms as $term) {
                         $term = trim($term);
                         if ($term === '') continue;
-                        $pos = StringMatching::matchPositions(
-                            $fieldValue,
-                            $term,
-                            $algorithm,
-                            $caseInsensitive
-                        );
-                        if (! empty($pos)) {
-                            $allPositions = array_merge($allPositions, $pos);
+                        if (mb_stripos($fieldValue, $term, 0, 'UTF-8') !== false) {
+                            $foundAny = true;
+                            break;
                         }
                     }
-
-                    if (! empty($allPositions)) {
+                    if ($foundAny) {
                         $matches[$fieldName] = [
-                            'positions' => array_values(array_unique($allPositions)),
-                            'snippet' => $this->getSnippetMultiple($fieldValue, $terms, $caseInsensitive),
+                            'snippet' => $this->getSnippetMultiple($fieldValue, $terms, true),
                         ];
                     }
                 }
@@ -132,15 +125,12 @@ class SearchController extends Controller
                         'tahun_terbit' => $book->tahun_terbit,
                         'stok' => $book->stok ?? 0,
                         'available' => ($book->stok ?? 0) > 0,
-                        'cover_url' => $book->cover_url ?? null,
+                        // Normalize cover url if stored as path in `cover` column
+                        'cover_url' => $book->cover ? asset('storage/' . ltrim($book->cover, '/')) : null,
                         'matches' => $matches,
                     ];
                 }
             }
-
-            // Pagination manual
-            $total = count($results);
-            $resultsPaginated = array_slice($results, ($currentPage - 1) * $perPage, $perPage);
 
             // ======================================================
             // END TIMER — hitung durasi proses
@@ -148,26 +138,42 @@ class SearchController extends Controller
             $processTime = (microtime(true) - $startTime) * 1000; // dalam ms
 
             // ======================================================
-            // SIMPAN LOG PENCARIAN
+            // SIMPAN LOG PENCARIAN (guarded and fixed variables)
             // ======================================================
             if (Auth::check()) {
-                LogPencarian::create([
-                    'pengguna_id' => Auth::id(),
-                    'kata_kunci' => $searchQuery,
-                    'jumlah_hasil' => $total,
-                    'algorithm' => $algorithm,
-                    'process_time_ms' => $processTime,
-                ]);
+                $total = $paged->total();
+                $algorithm = 'db';
 
-                // Log aktivitas pencarian
+                try {
+                    $logData = [
+                        'pengguna_id' => Auth::id(),
+                        'kata_kunci' => $searchQuery,
+                        'jumlah_hasil' => $total,
+                    ];
+
+                    // Add columns conditionally so older schemas won't fail
+                    if (Schema::hasColumn('log_pencarian', 'algorithm')) {
+                        $logData['algorithm'] = $algorithm;
+                    }
+                    if (Schema::hasColumn('log_pencarian', 'process_time_ms')) {
+                        $logData['process_time_ms'] = $processTime;
+                    }
+
+                    LogPencarian::create($logData);
+                } catch (\Exception $ex) {
+                    // Don't let logging failures break the search response
+                    \Log::warning('Failed to write LogPencarian: '.$ex->getMessage());
+                }
+
+                // Log aktivitas pencarian (still allow this to surface failures if any)
                 Activity::create([
                     'pengguna_id' => Auth::id(),
                     'type' => 'cari_buku',
                     'description' => "Mencari buku dengan kata kunci: {$searchQuery}",
                     'meta' => [
                         'keyword' => $searchQuery,
-                        'jumlah_hasil' => $total,
-                        'algorithm' => $algorithm,
+                        'jumlah_hasil' => $paged->total(),
+                        'engine' => 'db',
                         'process_time_ms' => $processTime,
                     ],
                 ]);
@@ -177,16 +183,15 @@ class SearchController extends Controller
                 'success' => true,
                 'data' => [
                     'query' => $searchQuery,
-                    'algorithm' => $algorithm,
+                    'engine' => 'db',
                     'process_time_ms' => $processTime,
-                    'case_insensitive' => $caseInsensitive,
                     'pagination' => [
-                        'total' => $total,
-                        'per_page' => $perPage,
-                        'current_page' => $currentPage,
-                        'last_page' => ceil($total / $perPage),
+                        'total' => $paged->total(),
+                        'per_page' => $paged->perPage(),
+                        'current_page' => $paged->currentPage(),
+                        'last_page' => $paged->lastPage(),
                     ],
-                    'results' => $resultsPaginated,
+                    'results' => $results,
                 ],
             ]);
 

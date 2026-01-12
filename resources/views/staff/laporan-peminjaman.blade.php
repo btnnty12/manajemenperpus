@@ -5,7 +5,41 @@
     use Illuminate\Support\Facades\Schema;
     use Illuminate\Support\Facades\DB;
     
-    $pinjaman = Pinjaman::with(['pengguna', 'buku'])->orderBy('created_at', 'desc')->get();
+    $perPage = request('per_page', 10);
+    $q = trim(request('q', ''));
+    $statusFilter = request('status', '');
+    $dateFilter = request('date', '');
+
+    $pinjamanQuery = Pinjaman::with(['pengguna', 'buku'])->orderBy('created_at', 'desc');
+
+    if ($q !== '') {
+        $pinjamanQuery->where(function($s) use ($q) {
+            $s->whereHas('pengguna', function($q2) use ($q) {
+                $q2->where('nama', 'like', "%{$q}%");
+            })->orWhereHas('buku', function($q3) use ($q) {
+                $q3->where('judul', 'like', "%{$q}%");
+            });
+        });
+    }
+
+    if ($statusFilter === 'terlambat') {
+        // hanya jika kolom tanggal_jatuh_tempo ada
+        if (Schema::hasColumn('pinjaman', 'tanggal_jatuh_tempo')) {
+            $pinjamanQuery->where('status', 'sedang_dipinjam')
+                         ->whereDate('tanggal_jatuh_tempo', '<', now()->toDateString());
+        } else {
+            $pinjamanQuery->whereRaw('1 = 0'); // kosongkan hasil
+        }
+    } elseif ($statusFilter !== '') {
+        $pinjamanQuery->where('status', $statusFilter);
+    }
+
+    if ($dateFilter) {
+        // gunakan tanggal_pinjam jika tersedia
+        $pinjamanQuery->whereDate('tanggal_pinjam', $dateFilter);
+    }
+
+    $pinjaman = $pinjamanQuery->paginate($perPage)->withQueryString();
     
     // Hitung statistik
     $totalDipinjam = Pinjaman::count();
@@ -65,21 +99,27 @@
         </div>
 
         <div class="bg-white rounded-xl shadow p-4">
-            <div class="flex flex-wrap gap-3 items-center mb-4">
+            <form id="filterForm" method="GET" class="flex flex-wrap gap-3 items-center mb-4 w-full">
                 <div class="flex items-center border rounded-lg px-3 py-2 flex-1 min-w-[200px]">
                     <x-icon name="search" class="w-5 h-5 text-gray-500 mr-2" />
-                    <input type="text" id="searchInput" placeholder="Cari nama / judul buku" class="w-full outline-none text-sm" onkeyup="filterTable()">
+                    <input type="text" name="q" id="searchInput" placeholder="Cari nama / judul buku" value="{{ request('q') }}" class="w-full outline-none text-sm" oninput="debouncedSubmit()">
                 </div>
-                <select id="statusFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="filterTable()">
-                    <option value="">Semua Status</option>
-                    <option value="menunggu_approval">Menunggu Approval</option>
-                    <option value="dapat_diambil">Dapat Diambil</option>
-                    <option value="sedang_dipinjam">Sedang Dipinjam</option>
-                    <option value="terlambat">Terlambat</option>
-                    <option value="dikembalikan">Dikembalikan</option>
+                <select name="status" id="statusFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="debouncedSubmit()">
+                    <option value="" {{ request('status') == '' ? 'selected' : '' }}>Semua Status</option>
+                    <option value="menunggu_approval" {{ request('status') == 'menunggu_approval' ? 'selected' : '' }}>Menunggu Approval</option>
+                    <option value="dapat_diambil" {{ request('status') == 'dapat_diambil' ? 'selected' : '' }}>Dapat Diambil</option>
+                    <option value="sedang_dipinjam" {{ request('status') == 'sedang_dipinjam' ? 'selected' : '' }}>Sedang Dipinjam</option>
+                    <option value="terlambat" {{ request('status') == 'terlambat' ? 'selected' : '' }}>Terlambat</option>
+                    <option value="dikembalikan" {{ request('status') == 'dikembalikan' ? 'selected' : '' }}>Dikembalikan</option>
                 </select>
-                <input type="date" id="dateFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="filterTable()">
-            </div>
+                <input type="date" name="date" id="dateFilter" value="{{ request('date') }}" class="border rounded-lg px-3 py-2 text-sm" onchange="debouncedSubmit()">
+
+                <select name="per_page" id="perPageSelect" class="border rounded-lg px-3 py-2 text-sm" onchange="debouncedSubmit()">
+                    <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 / halaman</option>
+                    <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 / halaman</option>
+                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 / halaman</option>
+                </select>
+            </form>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -206,121 +246,30 @@
                         @endforeach
                     </tbody>
                 </table>
-                <div id="noResults" class="hidden text-center py-8 text-gray-500">
+
+                @if($pinjaman->isEmpty())
+                <div class="text-center py-8 text-gray-500">
                     <p>Tidak ada data yang ditemukan</p>
+                </div>
+                @endif
+
+                <div class="mt-4">
+                    {{ $pinjaman->appends(request()->query())->links() }}
                 </div>
             </div>
         </div>
     </section>
 
     <script>
-        // Menggunakan StringMatchingService dari service
-        const StringMatching = window.StringMatchingService;
-
-        async function logSearchPerformance(keyword, algorithm, processTime, resultCount) {
-            if (!keyword || keyword.trim() === '') return;
-            try {
-                await fetch('{{ route("staff.log-search") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        kata_kunci: keyword,
-                        algorithm: algorithm,
-                        process_time_ms: parseFloat(processTime.toFixed(5)),
-                        jumlah_hasil: resultCount
-                    })
-                });
-            } catch (error) {
-                console.log('Search performance logged:', { algorithm, processTime: processTime.toFixed(5) + 'ms', resultCount });
-            }
+        // Server-side search: debounce and submit the GET form
+        let _debounceTimer;
+        function debouncedSubmit() {
+            clearTimeout(_debounceTimer);
+            _debounceTimer = setTimeout(() => document.getElementById('filterForm').submit(), 250);
         }
 
-        // ======================================================
-        // FUNGSI FILTER TABLE
-        // ======================================================
-        let searchTimeout;
-        
-        function filterTable() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                executeSearch();
-            }, 150);
-        }
-        
-        async function executeSearch() {
-            const searchInput = document.getElementById('searchInput');
-            const statusFilter = document.getElementById('statusFilter');
-            const dateFilter = document.getElementById('dateFilter');
-            const rows = document.querySelectorAll('.pinjaman-row');
-            const noResults = document.getElementById('noResults');
-            
-            if (!searchInput || !statusFilter || !rows.length) return;
-            
-            const searchValue = searchInput.value.trim().toLowerCase();
-            const statusValue = statusFilter.value;
-            const dateValue = dateFilter ? dateFilter.value : '';
-            let visibleCount = 0;
-
-            if (!searchValue && !statusValue && !dateValue) {
-                rows.forEach(row => {
-                    row.style.display = '';
-                    visibleCount++;
-                });
-                if (visibleCount === 0) {
-                    noResults.classList.remove('hidden');
-                } else {
-                    noResults.classList.add('hidden');
-                }
-                return;
-            }
-
-            const algorithm = StringMatching.selectBestAlgorithm(searchValue);
-            const startTime = performance.now();
-
-            // Lakukan pencarian dengan algoritma string matching menggunakan service
-            for (const row of rows) {
-                const nama = row.getAttribute('data-nama') || '';
-                const judul = row.getAttribute('data-judul') || '';
-                const status = row.getAttribute('data-status') || '';
-                const tanggal = row.getAttribute('data-tanggal') || '';
-                
-                let matchesSearch = true;
-                if (searchValue) {
-                    const namaMatches = await StringMatching.searchWithAlgorithm(nama, searchValue, algorithm);
-                    const judulMatches = await StringMatching.searchWithAlgorithm(judul, searchValue, algorithm);
-                    matchesSearch = namaMatches.length > 0 || judulMatches.length > 0;
-                }
-                
-                const matchesStatus = !statusValue || status === statusValue;
-                const matchesDate = !dateValue || tanggal === dateValue;
-                
-                if (matchesSearch && matchesStatus && matchesDate) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            }
-
-            const processTime = performance.now() - startTime;
-            if (searchValue) {
-                logSearchPerformance(searchValue, algorithm, processTime, visibleCount);
-            }
-
-            if (visibleCount === 0) {
-                noResults.classList.remove('hidden');
-                noResults.innerHTML = '<p class="text-lg font-semibold">Tidak ada data peminjaman yang ditemukan</p><p class="text-sm mt-2 text-gray-400">Coba ubah filter atau kata kunci pencarian Anda.</p>';
-            } else {
-                noResults.classList.add('hidden');
-            }
-        }
-        
         document.addEventListener('DOMContentLoaded', function() {
-            window.filterTable = filterTable;
+            // no-op
         });
 
         // ======================================================
